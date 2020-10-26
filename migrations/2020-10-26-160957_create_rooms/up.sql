@@ -1,0 +1,11 @@
+-- Your SQL goes here
+
+CREATE TABLE "rooms"
+(
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    location_id BIGINT NOT NULL REFERENCES locations(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(name)
+)

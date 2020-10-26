@@ -1,0 +1,10 @@
+-- Your SQL goes here
+
+CREATE TABLE "asset_scanners"
+(
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(name)
+)

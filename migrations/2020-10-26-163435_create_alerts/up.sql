@@ -1,0 +1,11 @@
+-- Your SQL goes here
+
+CREATE TABLE alerts
+(
+    id BIGSERIAL PRIMARY KEY,
+    message TEXT NULL,
+    reason TEXT NOT NULL,
+    user_id BIGINT NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+)

@@ -1,0 +1,11 @@
+-- Your SQL goes here
+
+CREATE TABLE comments
+(
+    id BIGSERIAL PRIMARY KEY,
+    content TEXT NOT NULL,
+    user_id BIGINT NOT NULL REFERENCES users(id),
+    asset_tag_id BIGINT NOT NULL REFERENCES asset_tags(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+)

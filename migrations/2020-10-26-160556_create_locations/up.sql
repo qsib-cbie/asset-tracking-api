@@ -1,0 +1,12 @@
+-- Your SQL goes here
+
+CREATE TABLE "locations"
+(
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ip INET NULL
+)
