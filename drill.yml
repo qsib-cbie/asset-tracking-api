@@ -1,0 +1,10 @@
+---
+concurrency: 7
+base: 'http://localhost:6001'
+iterations: 2048
+rampup: 2
+
+plan:
+  - name: Fetch Health
+    request:
+      url: /health
