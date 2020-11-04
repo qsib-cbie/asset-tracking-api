@@ -4,8 +4,8 @@ extern crate diesel;
 extern crate diesel_migrations;
 
 use actix_service::Service;
-use actix_web::{App, Error, HttpServer, dev::{ServiceRequest}};
-use actix_web::middleware::{Logger};
+use actix_web::{App, Error, HttpServer, dev::ServiceRequest};
+use actix_web::middleware::Logger;
 use actix_web_httpauth::extractors::{AuthenticationError, bearer::{BearerAuth, Config}};
 use actix_web_httpauth::middleware::HttpAuthentication;
 
@@ -23,9 +23,6 @@ mod schema;
 
 async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
     match credentials.token() {
-        "DEADBEEF" => {
-            Ok(req)
-        },
         "none" => {
             if req.path() == "/health" {
                 Ok(req)
@@ -47,14 +44,9 @@ async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<Servi
     }
 }
 
-#[actix_rt::main]
-async fn main() -> std::io::Result<()> {
-    dotenv().ok();
-    env_logger::init();
-    db::init();
-
-    let mut listenfd = ListenFd::from_env();
-    let mut server = HttpServer::new(|| App::new()
+macro_rules! AppFactory {
+    () => {
+        || App::new()
         .wrap(Logger::default())
         .wrap(HttpAuthentication::bearer(validator))
         .wrap_fn(|req, srv| {
@@ -67,7 +59,17 @@ async fn main() -> std::io::Result<()> {
             srv.call(req)
         })
         .configure(health::init_routes)
-    );
+    };
+}
+
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
+    dotenv().ok();
+    env_logger::init();
+    db::init();
+
+    let mut listenfd = ListenFd::from_env();
+    let mut server = HttpServer::new(AppFactory!());
 
     server = match listenfd.take_tcp_listener(0)? {
         Some(listener) => server.listen(listener)?,
@@ -79,4 +81,23 @@ async fn main() -> std::io::Result<()> {
     };
 
     server.run().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::test;
+    use serde::{Serialize, Deserialize};
+
+    #[derive(Serialize, Deserialize)]
+    struct Empty { }
+
+    #[actix_rt::test]
+    async fn test_health_get_without_token() {
+        let mut app = test::init_service(AppFactory!()()).await;
+        let req = test::TestRequest::get()
+            .uri("/health")
+            .to_request();
+        let _resp = test::read_response(&mut app, req).await;
+    }
 }
