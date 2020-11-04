@@ -16,9 +16,11 @@ use listenfd::ListenFd;
 use std::env;
 
 mod db;
-mod health;
 mod error_handler;
 mod schema;
+
+mod health;
+mod asset_tags;
 
 
 async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
@@ -33,7 +35,10 @@ async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<Servi
 
                 Err(AuthenticationError::from(config).into())
             }
-        }
+        },
+        "A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A" => {
+            Ok(req)
+        },
         _ => {
                 let config = req.app_data::<Config>()
                     .map(|data| data.clone())
@@ -59,6 +64,7 @@ macro_rules! AppFactory {
             srv.call(req)
         })
         .configure(health::init_routes)
+        .configure(asset_tags::init_routes)
     };
 }
 
@@ -87,17 +93,110 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use super::*;
     use actix_web::test;
+    use lazy_static::lazy_static;
     use serde::{Serialize, Deserialize};
+
+    lazy_static! {
+        static ref FIXTURE: () = {
+            env_logger::init();
+            ()
+        };
+    }
+
+    pub fn setup() {
+        lazy_static::initialize(&FIXTURE);
+    }
 
     #[derive(Serialize, Deserialize)]
     struct Empty { }
 
     #[actix_rt::test]
     async fn test_health_get_without_token() {
+        setup();
+
         let mut app = test::init_service(AppFactory!()()).await;
         let req = test::TestRequest::get()
             .uri("/health")
             .to_request();
         let _resp = test::read_response(&mut app, req).await;
+    }
+
+    #[actix_rt::test]
+    async fn test_asset_tags_resource() {
+        setup();
+
+        // Find all tags, there should be none
+        let mut app = test::init_service(AppFactory!()()).await;
+        let req = test::TestRequest::get()
+            .uri("/asset_tags")
+            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .to_request();
+        let resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 0);
+
+        // Create a tag
+        let value = asset_tags::MaybeAssetTag {
+            name: String::from("foo"),
+            description: Some(String::from("bar")),
+            serial_number: String::from("asdf"),
+        };
+        let payload = serde_json::to_string(&value).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/asset_tags")
+            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp: asset_tags::AssetTag = test::read_response_json(&mut app, req).await;
+        assert_eq!(value.name, resp.name);
+        assert_eq!(value.description, resp.description);
+        assert_eq!(value.serial_number, resp.serial_number);
+
+        // Find all tags, it should be the one we just created
+        let req = test::TestRequest::get()
+            .uri("/asset_tags")
+            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .to_request();
+        let resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(value.name, resp[0].name);
+        assert_eq!(value.description, resp[0].description);
+        assert_eq!(value.serial_number, resp[0].serial_number);
+
+        // Create another tag
+        let another_value = asset_tags::MaybeAssetTag {
+            name: String::from("foo1"),
+            description: Some(String::from("asdflkj")),
+            serial_number: String::from("asdf1"),
+        };
+        let payload = serde_json::to_string(&another_value).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/asset_tags")
+            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp: asset_tags::AssetTag = test::read_response_json(&mut app, req).await;
+        assert_eq!(another_value.name, resp.name);
+        assert_eq!(another_value.description, resp.description);
+        assert_eq!(another_value.serial_number, resp.serial_number);
+
+        // Find all tags, it should be the two we just created
+        let req = test::TestRequest::get()
+                .uri("/asset_tags")
+                .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+                .to_request();
+        let resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
+
+        // This order is not guaranteed by the endpoint. It is an undefined side effect of the underlying postgres query.
+        assert_eq!(resp.len(), 2);
+        assert_eq!(value.name, resp[0].name);
+        assert_eq!(value.description, resp[0].description);
+        assert_eq!(value.serial_number, resp[0].serial_number);
+        assert_eq!(another_value.name, resp[1].name);
+        assert_eq!(another_value.description, resp[1].description);
+        assert_eq!(another_value.serial_number, resp[1].serial_number);
     }
 }

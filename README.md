@@ -10,6 +10,12 @@ This Rust/Diesel application provides the API for managing generic and official 
 * Setup Postgres db with your .env credentials
 * Setup the db in Postgres with diesel `diesel run setup`
 
+## Testing
+
+Models reflect schema in the postgres database. The Diesel framework exposes the database interactions in the `model.rs` for each table schema in the database schema. `tests` modules belong in each of the `model.rs`. To test basic database interactions. The database connections is acquired by reference through a pool of connections. During test execution, the pooled connection manager holds a single connection that starts a test transaction that is never committed. This test connection is made against a local postgres instance; however, during standard runs, the DATABASE_URL environment variable is used to open a pooled connection manager with 10 connections without injecting transactions.
+
+Actix provides the routing and error handling for actions that run through the HttpServer services. The `routes.rs` for each table schema defines what routes will be accessible via the HTTP endpoint and how they will communicate with the `model.rs`. Integration testing of the Actix routes and Diesel models exists in `main.rs` where a series of requests can be verified against an App that is running internally (not exposed via HTTP server).
+
 ## Anticipated Workflows
 
 ### Bulk Asset Add

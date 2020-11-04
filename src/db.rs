@@ -1,4 +1,5 @@
 use crate::error_handler::CustomError;
+use diesel::Connection;
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use lazy_static::lazy_static;
@@ -12,9 +13,18 @@ embed_migrations!();
 
 lazy_static! {
     static ref POOL: Pool = {
-        let db_url = env::var("DATABASE_URL").expect("Database url not set");
+        let (db_url, pool_size) = match cfg!(test) {
+            true => (String::from("postgres://localhost/asset_api"), 1),
+            false => (env::var("DATABASE_URL").expect("Database url not set"), 10)
+        };
+
         let manager = ConnectionManager::<PgConnection>::new(db_url);
-        Pool::new(manager).expect("Failed to create db pool")
+        let pool = r2d2::Builder::new().max_size(pool_size).build(manager).expect("Failed to create db pool");
+        if cfg!(test) {
+            let conn = pool.get().expect("Failed to get db connection from pool");
+            conn.begin_test_transaction().expect("Failed to start test transaction")
+        }
+        pool
     };
 }
 
