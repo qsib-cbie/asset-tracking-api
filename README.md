@@ -16,6 +16,41 @@ Models reflect schema in the postgres database. The Diesel framework exposes the
 
 Actix provides the routing and error handling for actions that run through the HttpServer services. The `routes.rs` for each table schema defines what routes will be accessible via the HTTP endpoint and how they will communicate with the `model.rs`. Integration testing of the Actix routes and Diesel models exists in `main.rs` where a series of requests can be verified against an App that is running internally (not exposed via HTTP server).
 
+### Automated testing
+
+`cargo test` should pass, but if it fails use the env logger to get more information. For example, if you are working on new tests or debugging something you might choose various log levels for different crates:
+* `RUST_LOG=trace cargo test`: All of the logs you can get
+* `RUST_LOG=asset_api=trace,rest_api=debug`: All of the logs we create and some of the logs from the another crate
+* Click individual tests in vs code to run or debug individual tests
+
+### Manual testing
+
+Bring up an endpoint:
+* `cargo run`: Starts an http server
+* Your `.env` file needs to define a couple things. The RUST_LOG config is optional depending on what you are looking to test/debug
+```
+RUST_LOG=asset_api=trace,rest_api=trace,actix=trace,actix_web=debug,diesel_migrations=trace
+DATABASE_URL=postgres://localhost/asset_api
+HOST=0.0.0.0
+PORT=6001
+```
+
+You can hit the endpoint however you want; it is an HTTP server. I use httpie like so
+* `http :6001/health`: No auth required 200 OK
+* `http :6001/asset_tags`: Auth required 401 Unauthorized
+* `http :6001/asset_tags 'Auhtorization: Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A'`: Uses the test auth token for success if cfg(test) guard is disabled in `main.rs`'s validator
+* `http :6001/asset_tags/foo 'Auhtorization: Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A' > asset_tag.json`: httpie writes file with stdout with the json, trim to create valid json template to upload later
+* `cat asset_tag.json | http put :6001/asset_tags 'Auhtorization: Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A'`: httpie reads file from stdin, adds a content type application json header and uses the file contents as the body.
+
+Connect to the local postgres database and make changes behind the scenes
+
+* `psql postgres://localhost/asset_api` or `psql -d asset_api`: To connect to a local postgres database named asset_api
+* `select * from asset_tags order by created_at desc;`: Example query if connected to database to lookup data
+* `update asset_tags set description = 'adsf' where id = 1;`: Example query to change the description of the record with id 1
+* `\q` or `ctrl+d`: quit postgres
+* `\d`, `\dS`, `\dS asset_tags`, `\s`, `\l`: there are a million useful postgres commands
+
+
 ## Anticipated Workflows
 
 ### Bulk Asset Add
