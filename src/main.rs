@@ -37,7 +37,16 @@ async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<Servi
             }
         },
         "A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A" => {
-            Ok(req)
+            if cfg!(test) {
+                Ok(req)
+            } else {
+                log::warn!("Test bearer token used against non-test validator");
+                let config = req.app_data::<Config>()
+                    .map(|data| data.clone())
+                    .unwrap_or_else(Default::default);
+
+                Err(AuthenticationError::from(config).into())
+            }
         },
         _ => {
                 let config = req.app_data::<Config>()
