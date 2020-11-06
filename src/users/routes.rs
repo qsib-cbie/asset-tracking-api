@@ -1,6 +1,6 @@
 use crate::users::{AuthUser, User, MaybeUser};
 use crate::error_handler::CustomError;
-use actix_web::{get, post, put, web, HttpResponse};
+use actix_web::{post, put, web, HttpResponse};
 use log;
 use std::convert::TryInto;
 

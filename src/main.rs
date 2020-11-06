@@ -72,17 +72,29 @@ mod tests {
     use actix_web::test;
     use lazy_static::lazy_static;
     use serde::{Serialize, Deserialize};
+    use std::convert::TryInto;
 
     lazy_static! {
         static ref FIXTURE: () = {
             dotenv().ok();
             env_logger::init();
+            db::init();
+            auth::init();
             ()
+        };
+
+        static ref ADMIN_USER: users::AuthUser = {
+            let user = users::User::create(users::MaybeUser {
+                username: "admin".into(),
+                password: "qsib".into(),
+            }).expect("Failed to create test admin user");
+            user.try_into().expect("Failed to create auth user")
         };
     }
 
     pub fn setup() {
         lazy_static::initialize(&FIXTURE);
+        lazy_static::initialize(&ADMIN_USER);
     }
 
     #[derive(Serialize, Deserialize)]
@@ -113,7 +125,7 @@ mod tests {
 
         let req = test::TestRequest::post()
             .uri("/users")
-            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .header(header::AUTHORIZATION, format!("Bearer {}", ADMIN_USER.token))
             .header(header::CONTENT_TYPE, "application/json")
             .set_payload(payload)
             .to_request();
@@ -135,7 +147,7 @@ mod tests {
         let mut app = test::init_service(AppFactory!()()).await;
         let req = test::TestRequest::get()
             .uri("/asset_tags")
-            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .header(header::AUTHORIZATION, format!("Bearer {}", ADMIN_USER.token))
             .to_request();
         let resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
         assert_eq!(resp.len(), 0);
@@ -150,7 +162,7 @@ mod tests {
 
         let req = test::TestRequest::post()
             .uri("/asset_tags")
-            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .header(header::AUTHORIZATION, format!("Bearer {}", ADMIN_USER.token))
             .header(header::CONTENT_TYPE, "application/json")
             .set_payload(payload)
             .to_request();
@@ -162,7 +174,7 @@ mod tests {
         // Find all tags, it should be the one we just created
         let req = test::TestRequest::get()
             .uri("/asset_tags")
-            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .header(header::AUTHORIZATION, format!("Bearer {}", ADMIN_USER.token))
             .to_request();
         let resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
         assert_eq!(resp.len(), 1);
@@ -180,7 +192,7 @@ mod tests {
 
         let req = test::TestRequest::post()
             .uri("/asset_tags")
-            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .header(header::AUTHORIZATION, format!("Bearer {}", ADMIN_USER.token))
             .header(header::CONTENT_TYPE, "application/json")
             .set_payload(payload)
             .to_request();
@@ -192,7 +204,7 @@ mod tests {
         // Find all tags, it should be the two we just created
         let req = test::TestRequest::get()
                 .uri("/asset_tags")
-                .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+                .header(header::AUTHORIZATION, format!("Bearer {}", ADMIN_USER.token))
                 .to_request();
         let resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
 
