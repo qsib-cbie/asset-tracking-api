@@ -4,6 +4,7 @@ use diesel::result::Error as DieselError;
 use serde::Deserialize;
 use serde_json::json;
 use std::fmt;
+use crypto::symmetriccipher;
 
 #[derive(Debug, Deserialize)]
 pub struct CustomError {
@@ -35,6 +36,36 @@ impl From<DieselError> for CustomError {
             }
             err => CustomError::new(500, format!("Unknown Diesel error: {}", err)),
         }
+    }
+}
+
+impl From<String> for CustomError {
+    fn from(error: String) -> CustomError {
+        CustomError { error_message: error, error_status_code: 501 }
+    }
+}
+
+impl From<std::array::TryFromSliceError> for CustomError {
+    fn from(_error: std::array::TryFromSliceError) -> CustomError {
+        CustomError { error_message: String::from("Internal server error"), error_status_code: 501 }
+    }
+}
+
+impl From<symmetriccipher::SymmetricCipherError> for CustomError {
+    fn from(_error: symmetriccipher::SymmetricCipherError) -> CustomError {
+        CustomError { error_message: String::from("Internal server error"), error_status_code: 501 }
+    }
+}
+
+impl From<base64::DecodeError> for CustomError {
+    fn from(_error: base64::DecodeError) -> CustomError {
+        CustomError { error_message: String::from("Internal server error"), error_status_code: 501 }
+    }
+}
+
+impl From<std::string::FromUtf8Error> for CustomError {
+    fn from(_error: std::string::FromUtf8Error) -> CustomError {
+        CustomError { error_message: String::from("Internal server error"), error_status_code: 501 }
     }
 }
 

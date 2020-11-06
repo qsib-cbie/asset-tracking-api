@@ -4,9 +4,8 @@ extern crate diesel;
 extern crate diesel_migrations;
 
 use actix_service::Service;
-use actix_web::{App, Error, HttpServer, dev::ServiceRequest};
+use actix_web::{App, HttpServer, dev::ServiceRequest};
 use actix_web::middleware::Logger;
-use actix_web_httpauth::extractors::{AuthenticationError, bearer::{BearerAuth, Config}};
 use actix_web_httpauth::middleware::HttpAuthentication;
 
 use http::header;
@@ -18,62 +17,30 @@ use std::env;
 mod db;
 mod error_handler;
 mod schema;
+mod auth;
 
 mod health;
 mod asset_tags;
+mod users;
 
-
-async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<ServiceRequest, Error> {
-    match credentials.token() {
-        "none" => {
-            if req.path() == "/health" {
-                Ok(req)
-            } else {
-                let config = req.app_data::<Config>()
-                    .map(|data| data.clone())
-                    .unwrap_or_else(Default::default);
-
-                Err(AuthenticationError::from(config).into())
-            }
-        },
-        "A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A" => {
-            if cfg!(test) {
-                Ok(req)
-            } else {
-                log::warn!("Test bearer token used against non-test validator");
-                let config = req.app_data::<Config>()
-                    .map(|data| data.clone())
-                    .unwrap_or_else(Default::default);
-
-                Err(AuthenticationError::from(config).into())
-            }
-        },
-        _ => {
-                let config = req.app_data::<Config>()
-                    .map(|data| data.clone())
-                    .unwrap_or_else(Default::default);
-
-                Err(AuthenticationError::from(config).into())
-        }
-    }
-}
 
 macro_rules! AppFactory {
     () => {
         || App::new()
         .wrap(Logger::default())
-        .wrap(HttpAuthentication::bearer(validator))
+        .wrap(HttpAuthentication::bearer(auth::validator))
         .wrap_fn(|req, srv| {
             let mut req: ServiceRequest = req.into();
             let headers = req.headers_mut();
             if !headers.contains_key("authorization") {
-                headers.insert(header::HeaderName::from_static("authorization"), header::HeaderValue::from_static("Bearer none"))
+                headers.insert(header::HeaderName::from_static("authorization"), header::HeaderValue::from_static("Bearer _"))
             }
 
             srv.call(req)
         })
-        .configure(health::init_routes)
         .configure(asset_tags::init_routes)
+        .configure(health::init_routes)
+        .configure(users::init_routes)
     };
 }
 
@@ -82,6 +49,7 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     env_logger::init();
     db::init();
+    auth::init();
 
     let mut listenfd = ListenFd::from_env();
     let mut server = HttpServer::new(AppFactory!());
@@ -107,6 +75,7 @@ mod tests {
 
     lazy_static! {
         static ref FIXTURE: () = {
+            dotenv().ok();
             env_logger::init();
             ()
         };
@@ -129,6 +98,34 @@ mod tests {
             .to_request();
         let _resp = test::read_response(&mut app, req).await;
     }
+
+    #[actix_rt::test]
+    async fn test_create_and_use_user() {
+        setup();
+
+        let mut app = test::init_service(AppFactory!()()).await;
+
+        let user = users::MaybeUser {
+            username: String::from("foo"),
+            password: String::from("secretpassword"),
+        };
+        let payload = serde_json::to_string(&user).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/users")
+            .header(header::AUTHORIZATION, "Bearer A841BE66-84AC-4BA7-B0E1-D34B1FC2F08A")
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp: users::AuthUser = test::read_response_json(&mut app, req).await;
+        log::info!("Created User: {:?}", resp);
+
+        let req = test::TestRequest::get()
+            .uri("/asset_tags")
+            .header(header::AUTHORIZATION, format!("Bearer {}", resp.token).as_str())
+            .to_request();
+        let _protected_resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
+   }
 
     #[actix_rt::test]
     async fn test_asset_tags_resource() {
