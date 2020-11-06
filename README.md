@@ -69,7 +69,23 @@ Similarly, if warning conditions trigger due to events like low battery notifica
 
 ## Authentication
 
-JWT Bearer Token Authentication. Maybe through Auth0 or hand-rolled
+Bearer Token authentication with a base64 encoded symmetric hash string of secret, username, and bcrypted password hash as the token.
+
+- [x] Create user with username and password
+- [x] Store bcrypted hash string of password as internal token
+- [x] Expose symmetrically encrypted hash string as token for user that expires on secret or password change
+- [x] Lookup user from a symmetrically decrypted token and verify bcrypted hash password matches
+- [x] Access protected routes after verifying token
+- [x] Allow user to change own password
+- [ ] TBD: Roles and Policies
+
+Specific TODOs:
+
+- [x] Limit user to update only self during req/token verification
+- [x] Configure seed data for the database and remove alternative validator paths
+- [ ] Wrap crypto errors in enum and produce proper error status and message
+- [ ] Replace String usages with &str, array, and slices where possible in token manipulation
+
 
 ### Schema
 
