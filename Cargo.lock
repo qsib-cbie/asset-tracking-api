@@ -1420,6 +1420,7 @@ dependencies = [
  "dotenv",
  "env_logger",
  "futures 0.3.7",
+ "futures-util",
  "http",
  "lazy_static",
  "listenfd",

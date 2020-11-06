@@ -69,6 +69,17 @@ impl From<std::string::FromUtf8Error> for CustomError {
     }
 }
 
+impl From<actix_web::error::Error> for CustomError {
+    fn from(_error: actix_web::error::Error) -> CustomError {
+        CustomError { error_message: String::from("Bad request"), error_status_code: 400 }
+    }
+}
+impl From<actix_web_httpauth::extractors::AuthenticationError<actix_web_httpauth::headers::www_authenticate::bearer::Bearer>> for CustomError {
+    fn from(_error: actix_web_httpauth::extractors::AuthenticationError<actix_web_httpauth::headers::www_authenticate::bearer::Bearer>) -> CustomError {
+        CustomError { error_message: String::from("Bad request"), error_status_code: 400 }
+    }
+}
+
 impl ResponseError for CustomError {
     fn error_response(&self) -> HttpResponse {
         let status_code = match StatusCode::from_u16(self.error_status_code) {
