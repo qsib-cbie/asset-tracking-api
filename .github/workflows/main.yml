@@ -1,0 +1,17 @@
+on:
+    push:
+      branches:
+        - master
+    pull_request:
+      branches:
+        - master
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v1
+            - name: build
+            run: |
+                docker build -t asset-api .
+                docker run asset-api /bin/sh -c '. ~/.shrc && cd /home/app && pg_ctlcluster 12 main start && cargo test'
