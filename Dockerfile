@@ -3,7 +3,8 @@ FROM ubuntu:20.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt update && \
-    apt install -y apt-utils gcc libzmq3-dev postgresql postgresql-common postgresql-client postgresql-contrib build-essential glances htop vim tree curl libpq-dev
+    apt install -y apt-utils gcc libzmq3-dev postgresql postgresql-common postgresql-client postgresql-contrib build-essential glances htop vim tree curl libpq-dev && \
+    apt clean
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > /home/rustup.sh && \
     chmod +x /home/rustup.sh && \
@@ -29,8 +30,10 @@ RUN . $HOME/.shrc && \
     cd /home/app && \
     diesel setup --database-url postgres://postgres:postgres@localhost/asset_api
 
+ARG CARGO_FLAGS
 RUN cd /home/app && . $HOME/.shrc && \
-    cargo build && \
-    echo Done
-    # cargo build --release && \
+    cargo build ${CARGO_FLAGS} && \
+    pg_ctlcluster 12 main start && \
+    cargo test ${CARGO_FLAGS} && \
+    echo SUCCESS
 

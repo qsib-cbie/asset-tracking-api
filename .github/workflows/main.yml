@@ -7,12 +7,20 @@ on:
         - master
 
 jobs:
-    ci:
+    debug-ci:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout Code
               uses: actions/checkout@v1
-            - name: Build
+            - name: Build and Test
               run: |
                 docker build -t asset-api .
-                docker run asset-api /bin/sh -c '. ~/.shrc && cd /home/app && pg_ctlcluster 12 main start && cargo test'
+
+    release-ci:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v1
+            - name: Release Build and Test
+              run: |
+                docker build --build-arg CARGO_FLAGS='--release' -t release-asset-api .
