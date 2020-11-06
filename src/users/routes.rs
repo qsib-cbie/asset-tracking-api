@@ -1,14 +1,15 @@
 use crate::users::{AuthUser, User, MaybeUser};
 use crate::error_handler::CustomError;
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{get, post, put, web, HttpResponse};
 use log;
 use std::convert::TryInto;
 
-#[get("/users/token/{token}")]
-async fn find_by_token(token: web::Path<String>) -> Result<HttpResponse, CustomError> {
-    let token = token.into_inner();
-    log::trace!("GET /users/token/{}", &token);
-    let user = User::find_by_token(token)?;
+#[put("/users/{id}")]
+async fn update(id: web::Path<i64>, user: web::Json<MaybeUser>) -> Result<HttpResponse, CustomError> {
+    let id = id.into_inner();
+    let user = user.into_inner();
+    log::trace!("PUT /users/{}", id);
+    let user = User::update(id, user)?;
     let auth_user: AuthUser = user.try_into()?;
     Ok(HttpResponse::Ok().json(auth_user))
 }
@@ -24,6 +25,6 @@ async fn create(user: web::Json<MaybeUser>) -> Result<HttpResponse, CustomError>
 
 
 pub fn init_routes(comfig: &mut web::ServiceConfig) {
-    comfig.service(find_by_token);
+    comfig.service(update);
     comfig.service(create);
 }

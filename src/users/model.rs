@@ -127,6 +127,7 @@ pub struct User {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthUser {
+    pub id: i64,
     pub token: String,
 }
 
@@ -172,13 +173,29 @@ impl User {
         Ok(user)
     }
 
-    pub fn create(user: MaybeUser) -> Result<Self, CustomError> {
-        let db_token = bcrypt(user.password.as_bytes())?;
-        let db_token = base64::encode(db_token.as_slice());
-        let db_token = format!("$2$10${}", db_token);
-        log::trace!("Prepared username: [{}] and password: [{}]", user.username, db_token);
-        let user = InsertableUser { username: user.username, token: db_token };
+    pub fn update(id: i64, user: MaybeUser) -> Result<Self, CustomError> {
+        let conn = db::connection()?;
+        let db_token= Self::internal_token(user.username.clone(), user.password)?;
+        // TODO: Check if we have this user has permission already
+        // let user = diesel::update(users::table)
+        //     .filter(users::id.eq(id))
+        //     .filter(users::username.eq(username))
+        //     .filter(users::token.eq(db_token))
+        //     .first(&conn)?;
+        let insertable_user = InsertableUser { username: user.username.clone(), token: db_token };
+        let user = diesel::update(users::table)
+            .filter(users::id.eq(id))
+            .filter(users::username.eq(user.username))
+            .set(insertable_user)
+            .get_result(&conn)?;
+        Ok(user)
+    }
 
+    pub fn create(user: MaybeUser) -> Result<Self, CustomError> {
+        let user = InsertableUser {
+            username: user.username.clone(),
+            token: Self::internal_token(user.username, user.password)?
+        };
         let conn = db::connection()?;
         let user = diesel::insert_into(users::table)
             .values(user)
@@ -190,6 +207,14 @@ impl User {
         let conn = db::connection()?;
         let res = diesel::delete(users::table.filter(users::id.eq(id))).execute(&conn)?;
         Ok(res)
+    }
+
+    fn internal_token(username: String, password: String) -> Result<String, CustomError> {
+        let db_token = bcrypt(password.as_bytes())?;
+        let db_token = base64::encode(db_token.as_slice());
+        let db_token = format!("$2$10${}", db_token);
+        log::trace!("Prepared username: [{}] and password: [{}]", username, db_token);
+        Ok(db_token)
     }
 }
 
@@ -211,7 +236,7 @@ impl std::convert::TryInto<AuthUser> for User {
         let token = symmetric_encrypt(seed.as_bytes(), &key, &iv)?;
         let token = base64::encode(token.as_slice());
 
-        Ok(AuthUser { token: token })
+        Ok(AuthUser { id: self.id, token: token })
     }
 }
 
