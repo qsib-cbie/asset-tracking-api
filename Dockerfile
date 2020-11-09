@@ -25,7 +25,7 @@ COPY src /home/app/src/
 COPY diesel.toml Cargo.toml Cargo.lock /home/app/
 
 RUN . $HOME/.shrc && \
-    pg_ctlcluster 12 main start && \
+    pg_ctlcluster 12 main start -- -t 180 && \
     su - postgres -c "psql -U postgres -c \"alter user postgres with password 'postgres';\"" && \
     cd /home/app && \
     diesel setup --database-url postgres://postgres:postgres@localhost/asset_api
