@@ -8,7 +8,7 @@ on:
 
 jobs:
     debug-ci:
-        runs-on: ubuntu-latest
+        runs-on: self-hosted
         steps:
             - name: Checkout Code
               uses: actions/checkout@v1
@@ -17,7 +17,7 @@ jobs:
                 docker build -t asset-api .
 
     release-ci:
-        runs-on: ubuntu-latest
+        runs-on: self-hosted
         steps:
             - name: Checkout Code
               uses: actions/checkout@v1
