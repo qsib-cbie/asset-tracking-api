@@ -33,11 +33,13 @@ Actix provides the routing and error handling for actions that run through the H
 Bring up an endpoint:
 * `cargo run`: Starts an http server
 * Your `.env` file needs to define a couple things. The RUST_LOG config is optional depending on what you are looking to test/debug
+    * You need to generate a random string at least **48** bytes long for the AUTH_SECRET var in local development. Be sure this secret does **not** get commited anywhere in the repo. 
 ```
 RUST_LOG=asset_api=trace,rest_api=trace,actix=trace,actix_web=debug,diesel_migrations=trace
 DATABASE_URL=postgres://[username]:[password]@localhost:5432/asset_api
 HOST=0.0.0.0
 PORT=6001
+AUTH_SECRET=*************** 
 ```
 
 You can hit the endpoint however you want; it is an HTTP server. I use httpie like so
