@@ -7,8 +7,11 @@ This Rust/Diesel application provides the API for managing generic and official 
 * Install Rust with rustup.rs
 * Install Postgres
 * Install Diesel: `cargo install diesel_cli --no-default-features --features postgres`
-* Setup Postgres db with your .env credentials
-* Setup the db in Postgres with diesel `diesel run setup`
+    * On Windows, you need to add the location of the Postgres `lib` and `bin` files as a PATH environmental variable on the system. Reference link to the solution: https://stackoverflow.com/questions/20412084/postgresql-error-the-program-cant-start-because-libpq-dll-is-missing-from-your
+* Setup Postgres db with your `.env` credentials
+    * The `DATABASE_URL` var has to be configured in the .env file before the next step
+* Setup the db in Postgres with diesel `diesel setup` after navigating to the root directory
+
 
 ## Testing
 
@@ -30,7 +33,7 @@ Bring up an endpoint:
 * Your `.env` file needs to define a couple things. The RUST_LOG config is optional depending on what you are looking to test/debug
 ```
 RUST_LOG=asset_api=trace,rest_api=trace,actix=trace,actix_web=debug,diesel_migrations=trace
-DATABASE_URL=postgres://localhost/asset_api
+DATABASE_URL=postgres://[username]:[password]@localhost:5432/asset_api
 HOST=0.0.0.0
 PORT=6001
 ```
