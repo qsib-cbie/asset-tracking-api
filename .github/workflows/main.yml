@@ -31,4 +31,4 @@ jobs:
             - name: Release Build and Test
               run: |
                 docker build --build-arg CARGO_FLAGS='--release' -t release-asset-api:${{steps.vars.outputs.tag}} .
-                docker rmi release-asset-api:${{steps.vargs.outputs.tag}}
+                docker rmi release-asset-api:${{steps.vars.outputs.tag}}
