@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Identifiable, Queryable, AsChangeset, Insertable)]
+#[derive(Debug, Serialize, Deserialize, Identifiable, Queryable, AsChangeset, Insertable)]
 #[table_name = "asset_tags"]
 pub struct AssetTag {
     pub id: i64,

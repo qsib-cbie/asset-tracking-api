@@ -87,7 +87,7 @@ table! {
     users (id) {
         id -> Int8,
         username -> Text,
-        hashed_password -> Text,
+        token -> Text,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }

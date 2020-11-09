@@ -14,7 +14,7 @@ embed_migrations!();
 lazy_static! {
     static ref POOL: Pool = {
         let (db_url, pool_size) = match cfg!(test) {
-            true => (String::from("postgres://localhost/asset_api"), 1),
+            true => (String::from("postgres://postgres:postgres@localhost/asset_api"), 1),
             false => (env::var("DATABASE_URL").expect("Database url not set"), 10)
         };
 
