@@ -8,6 +8,8 @@ This Rust/Diesel application provides the API for managing generic and official 
 * Install Postgres
 * Install Diesel: `cargo install diesel_cli --no-default-features --features postgres`
     * On Windows, you need to add the location of the Postgres `lib` and `bin` files as a PATH environmental variable on the system. Reference link to the solution: https://stackoverflow.com/questions/20412084/postgresql-error-the-program-cant-start-because-libpq-dll-is-missing-from-your
+    * On Mac, `brew install libpq`
+    * On Ubuntu, `sudo apt install libpq-dev`
 * Setup Postgres db with your `.env` credentials
     * The `DATABASE_URL` var has to be configured in the .env file before the next step
 * Setup the db in Postgres with diesel `diesel setup` after navigating to the root directory
