@@ -8,19 +8,27 @@ on:
 
 jobs:
     debug-ci:
-        runs-on: ubuntu-latest
+        runs-on: self-hosted
         steps:
             - name: Checkout Code
               uses: actions/checkout@v1
+            - name: Get the version
+              id: vars
+              run: echo ::set-output name=tag::$(uuidgen)
             - name: Build and Test
               run: |
-                docker build -t asset-api .
+                docker build -t asset-api:${{steps.vars.outputs.tag}} .
+                docker rmi asset-api:${{steps.vars.outputs.tag}}
 
     release-ci:
-        runs-on: ubuntu-latest
+        runs-on: self-hosted
         steps:
             - name: Checkout Code
               uses: actions/checkout@v1
+            - name: Get the version
+              id: vars
+              run: echo ::set-output name=tag::$(uuidgen)
             - name: Release Build and Test
               run: |
-                docker build --build-arg CARGO_FLAGS='--release' -t release-asset-api .
+                docker build --build-arg CARGO_FLAGS='--release' -t release-asset-api:${{steps.vars.outputs.tag}} .
+                docker rmi release-asset-api:${{steps.vars.outputs.tag}}
