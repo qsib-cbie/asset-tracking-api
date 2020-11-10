@@ -33,7 +33,7 @@ RUN . $HOME/.shrc && \
 ARG CARGO_FLAGS
 RUN cd /home/app && . $HOME/.shrc && \
     cargo build ${CARGO_FLAGS} && \
-    pg_ctlcluster 12 main start && \
+    pg_ctlcluster 12 main start -- -t 300 && \
     cargo test ${CARGO_FLAGS} && \
     echo SUCCESS
 
