@@ -17,7 +17,7 @@ pub fn init() {
             password: String::from("admin")
         }).unwrap();
         let auth_user: users::AuthUser = user.try_into().unwrap();
-        log::warn!("The initial token for admin:admin is 'Bearer {}'", auth_user.token);
+        log::warn!("The initial token for admin:admin with id {} is 'Bearer {}'", auth_user.id, auth_user.token);
     }
 }
 
