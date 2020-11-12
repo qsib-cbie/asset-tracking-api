@@ -1,5 +1,6 @@
 use actix_web_httpauth::extractors::{AuthenticationError, bearer::{BearerAuth, Config}};
 use actix_web::{Error, dev::ServiceRequest};
+use std::convert::TryInto;
 
 use super::users;
 
@@ -11,10 +12,12 @@ pub fn init() {
     if num_users == 0 {
         log::warn!("Bootstrapping auth by creating admin:admin user");
         log::warn!("Remember to update the username and password of admin:admin user");
-        users::User::create(users::MaybeUser {
+        let user = users::User::create(users::MaybeUser {
             username: String::from("admin"),
             password: String::from("admin")
         }).unwrap();
+        let auth_user: users::AuthUser = user.try_into().unwrap();
+        log::warn!("The initial token for admin:admin is 'Bearer {}'", auth_user.token);
     }
 }
 
