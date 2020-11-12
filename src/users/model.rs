@@ -209,6 +209,11 @@ impl User {
         Ok(res)
     }
 
+    pub fn count() -> Result<i64, CustomError> {
+        let conn = db::connection()?;
+        Ok(users::table.select(diesel::dsl::count_star()).first(&conn)?)
+    }
+
     fn internal_token(username: String, password: String) -> Result<String, CustomError> {
         let db_token = bcrypt(password.as_bytes())?;
         let db_token = base64::encode(db_token.as_slice());
