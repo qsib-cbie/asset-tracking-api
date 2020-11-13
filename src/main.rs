@@ -19,6 +19,7 @@ mod db;
 mod error_handler;
 mod schema;
 
+mod asset_scanners;
 mod asset_tags;
 mod health;
 mod users;
@@ -44,9 +45,11 @@ macro_rules! AppFactory {
                 .configure(asset_tags::init_routes)
                 .configure(health::init_routes)
                 .configure(users::init_routes)
+                .configure(asset_scanners::init_routes)
         }
     };
 }
+
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -54,6 +57,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
     db::init();
     auth::init();
+    
 
     let mut listenfd = ListenFd::from_env();
     let mut server = HttpServer::new(AppFactory!());
@@ -107,6 +111,8 @@ mod tests {
     #[actix_rt::test]
     async fn test_health_get_without_token() {
         setup();
+
+        log::error!("Bearer {}", ADMIN_USER.token);
 
         let mut app = test::init_service(AppFactory!()()).await;
         let req = test::TestRequest::get().uri("/health").to_request();
