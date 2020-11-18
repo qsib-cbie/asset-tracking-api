@@ -112,8 +112,6 @@ mod tests {
     async fn test_health_get_without_token() {
         setup();
 
-        log::error!("Bearer {}", ADMIN_USER.token);
-
         let mut app = test::init_service(AppFactory!()()).await;
         let req = test::TestRequest::get().uri("/health").to_request();
         let _resp = test::read_response(&mut app, req).await;
