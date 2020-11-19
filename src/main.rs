@@ -20,6 +20,7 @@ mod error_handler;
 mod schema;
 
 mod asset_scanners;
+mod alerts;
 mod asset_tags;
 mod health;
 mod users;
@@ -42,6 +43,7 @@ macro_rules! AppFactory {
 
                     srv.call(req)
                 })
+                .configure(alerts::init_routes)
                 .configure(asset_tags::init_routes)
                 .configure(health::init_routes)
                 .configure(users::init_routes)
