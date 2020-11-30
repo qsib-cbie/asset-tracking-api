@@ -15,12 +15,13 @@ base64 = "0.13.0"
 bcrypt = "0.9.0"
 chrono = { version = "0.4.19", features = ["serde"] }
 dotenv = "0.15.0"
-diesel = { version = "1.4.5", features = ["postgres", "r2d2", "uuid", "chrono"] }
+diesel = { version = "1.4.5", features = ["postgres", "r2d2", "uuid", "chrono", "network-address"] }
 diesel_migrations = "1.4.0"
 env_logger = "0.8.1"
 futures = { version = "0.3.7", features = ["compat"] }
 futures-util = "0.3.7"
 http = "0.2"
+ipnetwork="0.16.0"
 lazy_static = "1.4.0"
 listenfd = "0.3.3"
 log = "0.4.11"
