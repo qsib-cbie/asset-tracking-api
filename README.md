@@ -1,3 +1,7 @@
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/qsib-cbie/asset-tracking-api/Build%20and%20Test)](https://github.com/qsib-cbie/asset-tracking-api/actions)
+[![codecov](https://codecov.io/gh/qsib-cbie/asset-tracking-api/branch/master/graph/badge.svg?token=YL5IHYIVUT)](https://codecov.io/gh/qsib-cbie/asset-tracking-api)
+
+
 # QSIB Assets
 
 This Rust/Diesel application provides the API for managing generic and official assets for the group. This includes standard asset information such as name and serial number as well as locations visited, user comments, user manual documentation.
