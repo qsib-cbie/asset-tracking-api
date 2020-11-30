@@ -19,12 +19,12 @@ jobs:
                 docker build -t hetnetdb:${GITHUB_SHA} . &&
                 echo ${{secrets.GITHUB_TOKEN}} | docker login https://docker.pkg.github.com -u trueb2 --password-stdin && \
                 docker tag hetnetdb:${GITHUB_SHA} docker.pkg.github.com/trueb2/hetnetdb/hetnetdb:${GITHUB_SHA}
-                docker push docker.pkg.github.com/trueb2/hetnetdb/hetnetdb:${GITHUB_SHA}
+                docker push docker.pkg.github.com/trueb2/qsib-cbie/asset-tracking-api/ci:${GITHUB_SHA}
     test:
         needs: build
         runs-on: ubuntu-latest
         container:
-            image: docker.pkg.github.com/trueb2/hetnetdb/hetnetdb:${{github.sha}}
+            image: docker.pkg.github.com/qsib-cbie/asset-tracking-api/ci:${{github.sha}}
             credentials:
                 username: trueb2
                 password: ${{ github.token }}
