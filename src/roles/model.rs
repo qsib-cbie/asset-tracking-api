@@ -2,15 +2,17 @@ use crate::db;
 use crate::error_handler::CustomError;
 use crate::schema::roles;
 use crate::users::User;
-use diesel::prelude::*;
 use chrono::NaiveDateTime;
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Identifiable, Queryable, AsChangeset, Insertable, Associations)]
+#[derive(
+    Debug, Serialize, Deserialize, Identifiable, Queryable, AsChangeset, Insertable, Associations,
+)]
 #[belongs_to(User)]
 #[table_name = "roles"]
 pub struct Role {
-    pub id: i64,   
+    pub id: i64,
     pub name: String,
     pub user_id: Option<i64>,
     pub created_at: NaiveDateTime,
@@ -29,7 +31,7 @@ impl Role {
         let conn = db::connection()?;
         let roles = roles::table.load::<Role>(&conn)?;
         Ok(roles)
-    }    
+    }
 
     pub fn find_by_id(id: i64) -> Result<Self, CustomError> {
         let conn = db::connection()?;
@@ -43,9 +45,11 @@ impl Role {
         Ok(role)
     }
 
-    pub fn find_by_user(id:i64) -> Result<Vec<Self>, CustomError>{
+    pub fn find_by_user(id: i64) -> Result<Vec<Self>, CustomError> {
         let conn = db::connection()?;
-        let roles = roles::table.filter(roles::user_id.eq(id)).load::<Role>(&conn)?;
+        let roles = roles::table
+            .filter(roles::user_id.eq(id))
+            .load::<Role>(&conn)?;
         Ok(roles)
     }
 

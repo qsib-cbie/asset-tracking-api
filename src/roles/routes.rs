@@ -1,6 +1,6 @@
-use crate::roles::{Role, MaybeRole};
 use crate::error_handler::CustomError;
-use actix_web::{get, post, put, delete, web, HttpResponse};
+use crate::roles::{MaybeRole, Role};
+use actix_web::{delete, get, post, put, web, HttpResponse};
 use log;
 
 #[get("/roles")]
@@ -58,17 +58,15 @@ async fn delete(id: web::Path<i64>) -> Result<HttpResponse, CustomError> {
     let id = id.into_inner();
     log::trace!("DELETE /roles/{}", &id);
     let res = Role::delete(id)?;
-    Ok(HttpResponse::Ok().json(res))    
+    Ok(HttpResponse::Ok().json(res))
 }
-
-
 
 pub fn init_routes(comfig: &mut web::ServiceConfig) {
     comfig.service(find_all);
     comfig.service(find_by_id);
-    comfig.service(find_by_name);    
+    comfig.service(find_by_name);
     comfig.service(find_by_user);
     comfig.service(create);
     comfig.service(update);
-    comfig.service(delete); 
+    comfig.service(delete);
 }

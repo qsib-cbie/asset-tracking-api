@@ -1,8 +1,8 @@
 use crate::db;
 use crate::error_handler::CustomError;
 use crate::schema::asset_tags;
-use diesel::prelude::*;
 use chrono::NaiveDateTime;
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Identifiable, Queryable, AsChangeset, Insertable)]
@@ -33,13 +33,17 @@ impl AssetTag {
 
     pub fn find_by_name(name: String) -> Result<Self, CustomError> {
         let conn = db::connection()?;
-        let asset_tag = asset_tags::table.filter(asset_tags::name.eq(name)).first(&conn)?;
+        let asset_tag = asset_tags::table
+            .filter(asset_tags::name.eq(name))
+            .first(&conn)?;
         Ok(asset_tag)
     }
 
     pub fn find_by_id(id: i64) -> Result<Self, CustomError> {
         let conn = db::connection()?;
-        let asset_tag = asset_tags::table.filter(asset_tags::id.eq(id)).first(&conn)?;
+        let asset_tag = asset_tags::table
+            .filter(asset_tags::id.eq(id))
+            .first(&conn)?;
         Ok(asset_tag)
     }
 

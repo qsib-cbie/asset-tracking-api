@@ -1,6 +1,6 @@
 use crate::asset_tags::{AssetTag, MaybeAssetTag};
 use crate::error_handler::CustomError;
-use actix_web::{get, post, put, delete, web, HttpResponse};
+use actix_web::{delete, get, post, put, web, HttpResponse};
 use log;
 
 #[get("/asset_tags")]
@@ -50,7 +50,7 @@ async fn delete(id: web::Path<i64>) -> Result<HttpResponse, CustomError> {
     let id = id.into_inner();
     log::trace!("DELETE /asset_tags/{}", &id);
     let res = AssetTag::delete(id)?;
-    Ok(HttpResponse::Ok().json(res))    
+    Ok(HttpResponse::Ok().json(res))
 }
 
 pub fn init_routes(comfig: &mut web::ServiceConfig) {

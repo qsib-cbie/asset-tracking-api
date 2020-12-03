@@ -3,12 +3,12 @@ use crate::error_handler::CustomError;
 use crate::schema::users;
 use chrono::NaiveDateTime;
 use crypto::bcrypt;
-use crypto::{symmetriccipher, buffer, aes, blockmodes};
-use crypto::buffer::{ReadBuffer, WriteBuffer, BufferResult};
+use crypto::buffer::{BufferResult, ReadBuffer, WriteBuffer};
+use crypto::{aes, blockmodes, buffer, symmetriccipher};
 use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
 use lazy_static::lazy_static;
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
 /*
@@ -35,7 +35,8 @@ use std::convert::TryInto;
 
 lazy_static! {
     pub static ref AUTH_SECRET: String = {
-        let secret = std::env::var("AUTH_SECRET").expect("AUTH_SECRET required for bearer token validator");
+        let secret =
+            std::env::var("AUTH_SECRET").expect("AUTH_SECRET required for bearer token validator");
         if secret.as_bytes().len() < 48 {
             panic!("AUTH_SECRET is too short");
         }
@@ -67,12 +68,13 @@ pub fn bcrypt(password: &[u8]) -> Result<Vec<u8>, String> {
     Ok(result)
 }
 
-pub fn symmetric_encrypt(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
-    let mut encryptor = aes::cbc_encryptor(
-        aes::KeySize::KeySize256,
-        key,
-        iv,
-        blockmodes::PkcsPadding);
+pub fn symmetric_encrypt(
+    data: &[u8],
+    key: &[u8],
+    iv: &[u8],
+) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+    let mut encryptor =
+        aes::cbc_encryptor(aes::KeySize::KeySize256, key, iv, blockmodes::PkcsPadding);
 
     let mut result = Vec::<u8>::new();
     let mut read_buffer = buffer::RefReadBuffer::new(data);
@@ -81,7 +83,13 @@ pub fn symmetric_encrypt(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, 
 
     loop {
         let pass_result = encryptor.encrypt(&mut read_buffer, &mut write_buffer, true)?;
-        result.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+        result.extend(
+            write_buffer
+                .take_read_buffer()
+                .take_remaining()
+                .iter()
+                .map(|&i| i),
+        );
         match pass_result {
             BufferResult::BufferUnderflow => break,
             BufferResult::BufferOverflow => {}
@@ -91,12 +99,13 @@ pub fn symmetric_encrypt(data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, 
     Ok(result)
 }
 
-fn symmetric_decrypt(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
-    let mut decryptor = aes::cbc_decryptor(
-            aes::KeySize::KeySize256,
-            key,
-            iv,
-            blockmodes::PkcsPadding);
+fn symmetric_decrypt(
+    encrypted_data: &[u8],
+    key: &[u8],
+    iv: &[u8],
+) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+    let mut decryptor =
+        aes::cbc_decryptor(aes::KeySize::KeySize256, key, iv, blockmodes::PkcsPadding);
 
     let mut result = Vec::<u8>::new();
     let mut read_buffer = buffer::RefReadBuffer::new(encrypted_data);
@@ -105,10 +114,16 @@ fn symmetric_decrypt(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec
 
     loop {
         let pass_result = decryptor.decrypt(&mut read_buffer, &mut write_buffer, true)?;
-        result.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+        result.extend(
+            write_buffer
+                .take_read_buffer()
+                .take_remaining()
+                .iter()
+                .map(|&i| i),
+        );
         match pass_result {
             BufferResult::BufferUnderflow => break,
-            BufferResult::BufferOverflow => { }
+            BufferResult::BufferOverflow => {}
         }
     }
 
@@ -159,11 +174,18 @@ impl User {
         log::trace!("Parsing token: [{}]", message);
         let parts: Vec<&str> = message.split("$").collect();
         if parts.len() != 5 {
-            return Err(CustomError { error_message: String::from("Unauthorized"), error_status_code: 401 });
+            return Err(CustomError {
+                error_message: String::from("Unauthorized"),
+                error_status_code: 401,
+            });
         }
         let username = parts[0];
         let password = parts[1..].join("$");
-        log::trace!("Parsed username: [{}] and password: [{}]", username, password);
+        log::trace!(
+            "Parsed username: [{}] and password: [{}]",
+            username,
+            password
+        );
 
         let conn = db::connection()?;
         let user = users::table
@@ -175,14 +197,17 @@ impl User {
 
     pub fn update(id: i64, user: MaybeUser) -> Result<Self, CustomError> {
         let conn = db::connection()?;
-        let db_token= Self::internal_token(user.username.clone(), user.password)?;
+        let db_token = Self::internal_token(user.username.clone(), user.password)?;
         // TODO: Check if we have this user has permission already
         // let user = diesel::update(users::table)
         //     .filter(users::id.eq(id))
         //     .filter(users::username.eq(username))
         //     .filter(users::token.eq(db_token))
         //     .first(&conn)?;
-        let insertable_user = InsertableUser { username: user.username.clone(), token: db_token };
+        let insertable_user = InsertableUser {
+            username: user.username.clone(),
+            token: db_token,
+        };
         let user = diesel::update(users::table)
             .filter(users::id.eq(id))
             .filter(users::username.eq(user.username))
@@ -194,7 +219,7 @@ impl User {
     pub fn create(user: MaybeUser) -> Result<Self, CustomError> {
         let user = InsertableUser {
             username: user.username.clone(),
-            token: Self::internal_token(user.username, user.password)?
+            token: Self::internal_token(user.username, user.password)?,
         };
         let conn = db::connection()?;
         let user = diesel::insert_into(users::table)
@@ -211,14 +236,20 @@ impl User {
 
     pub fn count() -> Result<i64, CustomError> {
         let conn = db::connection()?;
-        Ok(users::table.select(diesel::dsl::count_star()).first(&conn)?)
+        Ok(users::table
+            .select(diesel::dsl::count_star())
+            .first(&conn)?)
     }
 
     fn internal_token(username: String, password: String) -> Result<String, CustomError> {
         let db_token = bcrypt(password.as_bytes())?;
         let db_token = base64::encode(db_token.as_slice());
         let db_token = format!("$2$10${}", db_token);
-        log::trace!("Prepared username: [{}] and password: [{}]", username, db_token);
+        log::trace!(
+            "Prepared username: [{}] and password: [{}]",
+            username,
+            db_token
+        );
         Ok(db_token)
     }
 }
@@ -228,9 +259,11 @@ impl std::convert::TryInto<AuthUser> for User {
 
     fn try_into(self) -> Result<AuthUser, CustomError> {
         let seed: String = [
-            self.username, String::from("$"),        // Symmetric encryption allows decryption and lookup by username
-            self.token                               // Token invalidated if password changes
-        ].join("");
+            self.username,
+            String::from("$"), // Symmetric encryption allows decryption and lookup by username
+            self.token,        // Token invalidated if password changes
+        ]
+        .join("");
 
         // Token invalidated if secret changes
         let secret = AUTH_SECRET.as_bytes();
@@ -241,7 +274,9 @@ impl std::convert::TryInto<AuthUser> for User {
         let token = symmetric_encrypt(seed.as_bytes(), &key, &iv)?;
         let token = base64::encode(token.as_slice());
 
-        Ok(AuthUser { id: self.id, token: token })
+        Ok(AuthUser {
+            id: self.id,
+            token: token,
+        })
     }
 }
-
