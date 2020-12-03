@@ -356,4 +356,131 @@ mod tests {
         assert_eq!(another_value.description, resp[1].description);
         assert_eq!(another_value.serial_number, resp[1].serial_number);
     }
+
+    #[actix_rt::test]
+    async fn test_alert_resource() {
+        setup();        
+
+        // Find all alerts, there should be none
+        let mut app = test::init_service(AppFactory!()()).await;
+        let req = test::TestRequest::get()
+            .uri("/alerts")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<alerts::Alert> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 0);        
+        
+        // Create an alert with ADMIN USER as the user_id
+        let value = alerts::MaybeAlert {
+            message: Some(String::from("foo")),
+            reason: String::from("bar"),
+            user_id: ADMIN_USER.id            
+        };
+        let payload = serde_json::to_string(&value).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/alerts")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp: alerts::Alert = test::read_response_json(&mut app, req).await;
+        assert_eq!(value.message, resp.message);
+        assert_eq!(value.reason, resp.reason);
+        assert_eq!(value.user_id, resp.user_id);
+
+        // Find all alerts, it should be the one we just created
+        let req = test::TestRequest::get()
+            .uri("/alerts")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<alerts::Alert> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(value.message, resp[0].message);
+        assert_eq!(value.reason, resp[0].reason);
+        assert_eq!(value.user_id, resp[0].user_id);       
+
+        // Find alert by id 
+        let id = resp[0].id;
+
+        let req = test::TestRequest::get()
+            .uri(format!("/alerts/id/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: alerts::Alert = test::read_response_json(&mut app, req).await;
+        assert_eq!(id, resp.id);
+        assert_eq!(value.message, resp.message);
+        assert_eq!(value.reason, resp.reason);
+        assert_eq!(value.user_id, resp.user_id);
+        
+        // Update alert by id
+        let value_updated = alerts::MaybeAlert {
+            message: Some(String::from("foofoo")),
+            reason: String::from("barbar"),
+            user_id: ADMIN_USER.id            
+        };
+        let payload_updated = serde_json::to_string(&value_updated).expect("Invalid value");
+
+        let req = test::TestRequest::put()
+            .uri(format!("/alerts/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload_updated)
+            .to_request();
+        let resp: alerts::Alert = test::read_response_json(&mut app, req).await;        
+        assert_eq!(value_updated.message, resp.message);
+        assert_eq!(value_updated.reason, resp.reason);
+        assert_eq!(value_updated.user_id, resp.user_id);
+
+        // Find alert by id, should be the updated one
+        let req = test::TestRequest::get()
+            .uri(format!("/alerts/id/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: alerts::Alert = test::read_response_json(&mut app, req).await;
+        assert_eq!(id, resp.id);
+        assert_eq!(value_updated.message, resp.message);
+        assert_eq!(value_updated.reason, resp.reason);
+        assert_eq!(value_updated.user_id, resp.user_id);        
+        
+        // Delete the alert by id
+        let req = test::TestRequest::delete()
+            .uri(format!("/alerts/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: usize = test::read_response_json(&mut app, req).await;
+        assert_eq!(1, resp);        
+
+        // Find all alerts, there should be none now        
+        let req = test::TestRequest::get()
+            .uri("/alerts")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<alerts::Alert> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 0);        
+    }    
 }
