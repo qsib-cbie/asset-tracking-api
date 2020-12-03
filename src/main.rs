@@ -357,4 +357,124 @@ mod tests {
         assert_eq!(another_value.description, resp[1].description);
         assert_eq!(another_value.serial_number, resp[1].serial_number);
     }
+
+    #[actix_rt::test]
+    async fn test_role_resource() {
+        setup();
+
+        // Find all roles, there should be none
+        let mut app = test::init_service(AppFactory!()()).await;
+        let req = test::TestRequest::get()
+            .uri("/roles")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<roles::Role> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 0);        
+        
+        // Create a role with ADMIN USER as user association
+        let value = roles::MaybeRole {
+            name: String::from("foo"),            
+            user_id: Some(ADMIN_USER.id)    
+        };
+        let payload = serde_json::to_string(&value).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/roles")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp: roles::Role = test::read_response_json(&mut app, req).await;        
+        assert_eq!(value.name, resp.name);
+        assert_eq!(value.user_id, resp.user_id);        
+
+        // Find all roles, it should be the one we just created
+        let req = test::TestRequest::get()
+            .uri("/roles")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<roles::Role> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(value.name, resp[0].name);
+        assert_eq!(value.user_id, resp[0].user_id);     
+
+        // Find role by id 
+        let id = resp[0].id;
+
+        let req = test::TestRequest::get()
+            .uri(format!("/roles/id/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: roles::Role = test::read_response_json(&mut app, req).await;
+        assert_eq!(id, resp.id);
+        assert_eq!(value.name, resp.name);
+        assert_eq!(value.user_id, resp.user_id);   
+
+        // Update role by id
+        let value_updated = roles::MaybeRole {
+            name: String::from("foobar"),            
+            user_id: Some(ADMIN_USER.id)            
+        };
+        let payload_updated = serde_json::to_string(&value_updated).expect("Invalid value");
+
+        let req = test::TestRequest::put()
+            .uri(format!("/roles/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload_updated)
+            .to_request();
+        let resp: roles::Role = test::read_response_json(&mut app, req).await;        
+        assert_eq!(value_updated.name, resp.name);        
+        assert_eq!(value_updated.user_id, resp.user_id);
+
+        // Find role by id, should be the updated one
+        let req = test::TestRequest::get()
+            .uri(format!("/roles/id/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: roles::Role = test::read_response_json(&mut app, req).await;
+        assert_eq!(id, resp.id);
+        assert_eq!(value_updated.name, resp.name);        
+        assert_eq!(value_updated.user_id, resp.user_id);        
+        
+        // Delete the role by id
+        let req = test::TestRequest::delete()
+            .uri(format!("/roles/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: usize = test::read_response_json(&mut app, req).await;
+        assert_eq!(1, resp);        
+
+        // Find all roles, there should be none now        
+        let req = test::TestRequest::get()
+            .uri("/roles")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<roles::Role> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 0);        
+    }
 }
