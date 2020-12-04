@@ -1,8 +1,7 @@
 use crate::asset_scanners::{AssetScanner, MaybeAssetScanner};
 use crate::error_handler::CustomError;
-use actix_web::{get, post, put, delete, web, HttpResponse};
+use actix_web::{delete, get, post, put, web, HttpResponse};
 use log;
-
 
 #[get("/asset_scanners")]
 async fn find_all() -> Result<HttpResponse, CustomError> {
@@ -51,16 +50,14 @@ async fn delete(id: web::Path<i64>) -> Result<HttpResponse, CustomError> {
     let id = id.into_inner();
     log::trace!("DELETE /asset_scanners/{}", &id);
     let res = AssetScanner::delete(id)?;
-    Ok(HttpResponse::Ok().json(res))    
+    Ok(HttpResponse::Ok().json(res))
 }
-    
-
 
 pub fn init_routes(comfig: &mut web::ServiceConfig) {
-    comfig.service(find_all);    
+    comfig.service(find_all);
     comfig.service(find_by_id);
     comfig.service(find_by_name);
     comfig.service(create);
-    comfig.service(update); 
-    comfig.service(delete);   
+    comfig.service(update);
+    comfig.service(delete);
 }

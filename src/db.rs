@@ -1,7 +1,7 @@
 use crate::error_handler::CustomError;
-use diesel::Connection;
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
+use diesel::Connection;
 use lazy_static::lazy_static;
 use r2d2;
 use std::env;
@@ -18,19 +18,24 @@ lazy_static! {
                 if let Ok(test_database) = env::var("TEST_DATABASE_URL") {
                     (test_database, 1)
                 } else {
-                    (String::from("postgres://postgres:postgres@localhost/asset_api"), 1)
+                    (
+                        String::from("postgres://postgres:postgres@localhost/asset_api"),
+                        1,
+                    )
                 }
-            },
-            false => {
-                (env::var("DATABASE_URL").expect("Database url not set"), 10)
             }
+            false => (env::var("DATABASE_URL").expect("Database url not set"), 10),
         };
 
         let manager = ConnectionManager::<PgConnection>::new(db_url);
-        let pool = r2d2::Builder::new().max_size(pool_size).build(manager).expect("Failed to create db pool");
+        let pool = r2d2::Builder::new()
+            .max_size(pool_size)
+            .build(manager)
+            .expect("Failed to create db pool");
         if cfg!(test) {
             let conn = pool.get().expect("Failed to get db connection from pool");
-            conn.begin_test_transaction().expect("Failed to start test transaction")
+            conn.begin_test_transaction()
+                .expect("Failed to start test transaction")
         }
         pool
     };
