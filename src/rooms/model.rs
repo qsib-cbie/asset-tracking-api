@@ -1,7 +1,7 @@
 use crate::db;
 use crate::error_handler::CustomError;
-use crate::schema::rooms;
 use crate::locations::Location;
+use crate::schema::rooms;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
