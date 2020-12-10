@@ -26,6 +26,7 @@ mod comments;
 mod health;
 mod locations;
 mod roles;
+mod rooms;
 mod users;
 
 macro_rules! AppFactory {
@@ -52,6 +53,7 @@ macro_rules! AppFactory {
                 .configure(comments::init_routes)
                 .configure(health::init_routes)
                 .configure(roles::init_routes)
+                .configure(rooms::init_routes)
                 .configure(users::init_routes)
                 .configure(locations::init_routes)
         }
