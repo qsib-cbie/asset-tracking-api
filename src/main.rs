@@ -23,6 +23,7 @@ mod alerts;
 mod asset_scanners;
 mod asset_tags;
 mod comments;
+mod contact_events;
 mod health;
 mod locations;
 mod roles;
@@ -50,6 +51,7 @@ macro_rules! AppFactory {
                 .configure(asset_tags::init_routes)
                 .configure(asset_scanners::init_routes)
                 .configure(comments::init_routes)
+                .configure(contact_events::init_routes)
                 .configure(health::init_routes)
                 .configure(roles::init_routes)
                 .configure(users::init_routes)
