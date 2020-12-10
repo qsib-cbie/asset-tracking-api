@@ -118,12 +118,37 @@ mod tests {
                     asset_tag.try_into().expect("Failed to create initial asset tag")
                 };
 
+                // create initial location for room and contact_event test
+                static ref INITIAL_LOCATION: locations::Location = {
+                    let location = locations::Location::create(locations::MaybeLocation {
+                        name: Some(String::from("initial")),
+                        latitude: 1.0,
+                        longitude: 1.0,
+                        ip: Some(IpNetwork::V4("10.9.0.32/16".parse().unwrap())),
+                    })
+                    .expect("Failed to create test location");
+                    location.try_into().expect("Failed to create initial location")
+                };
+
+                // create initial alert for contact_event test
+                // uses ADMIN USER for user association
+                static ref INITIAL_ALERT: alerts::Alert = {
+                    let alert = alerts::Alert::create(alerts::MaybeAlert {
+                        message: Some(String::from("initial")),
+                        reason: String::from("initial"),
+                        user_id: ADMIN_USER.id
+                    })
+                    .expect("Failed to create test alert");
+                    alert.try_into().expect("Failed to create initial alert")
+                };
     }
 
     pub fn setup() {
         lazy_static::initialize(&FIXTURE);
         lazy_static::initialize(&ADMIN_USER);
         lazy_static::initialize(&INITIAL_ASSET_TAG);
+        lazy_static::initialize(&INITIAL_LOCATION);
+        lazy_static::initialize(&INITIAL_ALERT);
     }
 
     #[derive(Serialize, Deserialize)]
@@ -737,7 +762,7 @@ mod tests {
     async fn test_alert_resource() {
         setup();
 
-        // Find all alerts, there should be none
+        // Find all alerts, there should only be the initial one
         let mut app = test::init_service(AppFactory!()()).await;
         let req = test::TestRequest::get()
             .uri("/alerts")
@@ -747,7 +772,7 @@ mod tests {
             )
             .to_request();
         let resp: Vec<alerts::Alert> = test::read_response_json(&mut app, req).await;
-        assert_eq!(resp.len(), 0);
+        assert_eq!(resp.len(), 1);
 
         // Create an alert with ADMIN USER as the user_id
         let value = alerts::MaybeAlert {
@@ -771,7 +796,7 @@ mod tests {
         assert_eq!(value.reason, resp.reason);
         assert_eq!(value.user_id, resp.user_id);
 
-        // Find all alerts, it should be the one we just created
+        // Find all alerts, it should include the one we just created
         let req = test::TestRequest::get()
             .uri("/alerts")
             .header(
@@ -780,13 +805,13 @@ mod tests {
             )
             .to_request();
         let resp: Vec<alerts::Alert> = test::read_response_json(&mut app, req).await;
-        assert_eq!(resp.len(), 1);
-        assert_eq!(value.message, resp[0].message);
-        assert_eq!(value.reason, resp[0].reason);
-        assert_eq!(value.user_id, resp[0].user_id);
+        assert_eq!(resp.len(), 2);
+        assert_eq!(value.message, resp[1].message);
+        assert_eq!(value.reason, resp[1].reason);
+        assert_eq!(value.user_id, resp[1].user_id);
 
         // Find alert by id
-        let id = resp[0].id;
+        let id = resp[1].id;
 
         let req = test::TestRequest::get()
             .uri(format!("/alerts/id/{}", id).as_str())
@@ -848,7 +873,7 @@ mod tests {
         let resp: usize = test::read_response_json(&mut app, req).await;
         assert_eq!(1, resp);
 
-        // Find all alerts, there should be none now
+        // Find all alerts, there should only be the initial one
         let req = test::TestRequest::get()
             .uri("/alerts")
             .header(
@@ -857,14 +882,14 @@ mod tests {
             )
             .to_request();
         let resp: Vec<alerts::Alert> = test::read_response_json(&mut app, req).await;
-        assert_eq!(resp.len(), 0);
+        assert_eq!(resp.len(), 1);
     }
 
     #[actix_rt::test]
     async fn test_location_resource() {
         setup();
 
-        // Find all locations, there should be none
+        // Find all locations, there should only be the initial one
         let mut app = test::init_service(AppFactory!()()).await;
         let req = test::TestRequest::get()
             .uri("/locations")
@@ -874,7 +899,7 @@ mod tests {
             )
             .to_request();
         let resp: Vec<locations::Location> = test::read_response_json(&mut app, req).await;
-        assert_eq!(resp.len(), 0);
+        assert_eq!(resp.len(), 1);
 
         // Create a location
         let value = locations::MaybeLocation {
@@ -901,7 +926,7 @@ mod tests {
         assert_eq!(value.longitude, resp.longitude);
         assert_eq!(value.ip, resp.ip);
 
-        // Find all locations, it should be the one we just created
+        // Find all locations, it should include the one we just created
         let req = test::TestRequest::get()
             .uri("/locations")
             .header(
@@ -910,14 +935,14 @@ mod tests {
             )
             .to_request();
         let resp: Vec<locations::Location> = test::read_response_json(&mut app, req).await;
-        assert_eq!(resp.len(), 1);
-        assert_eq!(value.name, resp[0].name);
-        assert_eq!(value.latitude, resp[0].latitude);
-        assert_eq!(value.longitude, resp[0].longitude);
-        assert_eq!(value.ip, resp[0].ip);
+        assert_eq!(resp.len(), 2);
+        assert_eq!(value.name, resp[1].name);
+        assert_eq!(value.latitude, resp[1].latitude);
+        assert_eq!(value.longitude, resp[1].longitude);
+        assert_eq!(value.ip, resp[1].ip);
 
         // Find location by id
-        let id = resp[0].id;
+        let id = resp[1].id;
 
         let req = test::TestRequest::get()
             .uri(format!("/locations/id/{}", id).as_str())
@@ -983,7 +1008,7 @@ mod tests {
         let resp: usize = test::read_response_json(&mut app, req).await;
         assert_eq!(1, resp);
 
-        // Find all locations, there should be none now
+        // Find all locations, there should only be the initial one now
         let req = test::TestRequest::get()
             .uri("/locations")
             .header(
@@ -992,6 +1017,136 @@ mod tests {
             )
             .to_request();
         let resp: Vec<locations::Location> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
+    }
+
+    #[actix_rt::test]
+    async fn test_contact_event_resource() {
+        setup();
+
+        // Find all contact_events, there should be none
+        let mut app = test::init_service(AppFactory!()()).await;
+        let req = test::TestRequest::get()
+            .uri("/contact_events")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<contact_events::ContactEvent> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 0);
+
+        /* Create a contact_event with
+            INITIAL ASSET TAG as asset tag association
+            INITIAL LOCATION as location association
+            INITIAL ALERT as alert association
+        */
+        let value = contact_events::MaybeContactEvent {
+            asset_tag_id: INITIAL_ASSET_TAG.id,
+            location_id: INITIAL_LOCATION.id,
+            alert_id: Some(INITIAL_ALERT.id),
+        };
+        let payload = serde_json::to_string(&value).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/contact_events")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp: contact_events::ContactEvent = test::read_response_json(&mut app, req).await;
+        assert_eq!(value.asset_tag_id, resp.asset_tag_id);
+        assert_eq!(value.location_id, resp.location_id);
+        assert_eq!(value.alert_id, resp.alert_id);
+
+        // Find all contact_events, it should be the one we just created
+        let req = test::TestRequest::get()
+            .uri("/contact_events")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<contact_events::ContactEvent> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(value.asset_tag_id, resp[0].asset_tag_id);
+        assert_eq!(value.location_id, resp[0].location_id);
+        assert_eq!(value.alert_id, resp[0].alert_id);
+
+        // Find contact_event by id
+        let id = resp[0].id;
+
+        let req = test::TestRequest::get()
+            .uri(format!("/contact_events/id/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: contact_events::ContactEvent = test::read_response_json(&mut app, req).await;
+        assert_eq!(id, resp.id);
+        assert_eq!(value.asset_tag_id, resp.asset_tag_id);
+        assert_eq!(value.location_id, resp.location_id);
+        assert_eq!(value.alert_id, resp.alert_id);
+
+        // Update contact_event by id
+        let value_updated = contact_events::MaybeContactEvent {
+            asset_tag_id: INITIAL_ASSET_TAG.id,
+            location_id: INITIAL_LOCATION.id,
+            alert_id: Some(INITIAL_ALERT.id),
+        };
+        let payload_updated = serde_json::to_string(&value_updated).expect("Invalid value");
+
+        let req = test::TestRequest::put()
+            .uri(format!("/contact_events/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload_updated)
+            .to_request();
+        let resp: contact_events::ContactEvent = test::read_response_json(&mut app, req).await;
+        assert_eq!(value_updated.asset_tag_id, resp.asset_tag_id);
+        assert_eq!(value_updated.location_id, resp.location_id);
+        assert_eq!(value_updated.alert_id, resp.alert_id);
+
+        // Find contact_event by id, should be the updated one
+        let req = test::TestRequest::get()
+            .uri(format!("/contact_events/id/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: contact_events::ContactEvent = test::read_response_json(&mut app, req).await;
+        assert_eq!(value_updated.asset_tag_id, resp.asset_tag_id);
+        assert_eq!(value_updated.location_id, resp.location_id);
+        assert_eq!(value_updated.alert_id, resp.alert_id);
+
+        // Delete the contact_event by id
+        let req = test::TestRequest::delete()
+            .uri(format!("/contact_events/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: usize = test::read_response_json(&mut app, req).await;
+        assert_eq!(1, resp);
+
+        // Find all contact_events, there should be none now
+        let req = test::TestRequest::get()
+            .uri("/contact_events")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<contact_events::ContactEvent> = test::read_response_json(&mut app, req).await;
         assert_eq!(resp.len(), 0);
     }
 }

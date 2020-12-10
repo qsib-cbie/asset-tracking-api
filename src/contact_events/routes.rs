@@ -71,7 +71,7 @@ async fn delete(id: web::Path<i64>) -> Result<HttpResponse, CustomError> {
 
 pub fn init_routes(comfig: &mut web::ServiceConfig) {
     comfig.service(find_all);
-    comfig.service(find_by_id);    
+    comfig.service(find_by_id);
     comfig.service(find_by_asset_tag);
     comfig.service(find_by_location);
     comfig.service(find_by_alert);

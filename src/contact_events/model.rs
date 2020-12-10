@@ -1,8 +1,8 @@
 use crate::alerts::Alert;
 use crate::asset_tags::AssetTag;
-use crate::locations::Location;
 use crate::db;
 use crate::error_handler::CustomError;
+use crate::locations::Location;
 use crate::schema::contact_events;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 #[belongs_to(Location)]
 #[table_name = "contact_events"]
 pub struct ContactEvent {
-    pub id: i64,    
+    pub id: i64,
     pub asset_tag_id: i64,
     pub location_id: i64,
     pub alert_id: Option<i64>,
@@ -29,7 +29,7 @@ pub struct ContactEvent {
 pub struct MaybeContactEvent {
     pub asset_tag_id: i64,
     pub location_id: i64,
-    pub alert_id: Option<i64>
+    pub alert_id: Option<i64>,
 }
 
 impl ContactEvent {
@@ -41,9 +41,11 @@ impl ContactEvent {
 
     pub fn find_by_id(id: i64) -> Result<Self, CustomError> {
         let conn = db::connection()?;
-        let contact_event = contact_events::table.filter(contact_events::id.eq(id)).first(&conn)?;
+        let contact_event = contact_events::table
+            .filter(contact_events::id.eq(id))
+            .first(&conn)?;
         Ok(contact_event)
-    }    
+    }
 
     pub fn find_by_asset_tag(id: i64) -> Result<Vec<Self>, CustomError> {
         let conn = db::connection()?;
@@ -88,7 +90,8 @@ impl ContactEvent {
 
     pub fn delete(id: i64) -> Result<usize, CustomError> {
         let conn = db::connection()?;
-        let res = diesel::delete(contact_events::table.filter(contact_events::id.eq(id))).execute(&conn)?;
+        let res = diesel::delete(contact_events::table.filter(contact_events::id.eq(id)))
+            .execute(&conn)?;
         Ok(res)
     }
 }
