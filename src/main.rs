@@ -27,6 +27,7 @@ mod contact_events;
 mod health;
 mod locations;
 mod roles;
+mod rooms;
 mod users;
 
 macro_rules! AppFactory {
@@ -54,6 +55,7 @@ macro_rules! AppFactory {
                 .configure(contact_events::init_routes)
                 .configure(health::init_routes)
                 .configure(roles::init_routes)
+                .configure(rooms::init_routes)
                 .configure(users::init_routes)
                 .configure(locations::init_routes)
         }
@@ -1018,6 +1020,126 @@ mod tests {
             .to_request();
         let resp: Vec<locations::Location> = test::read_response_json(&mut app, req).await;
         assert_eq!(resp.len(), 1);
+    }
+
+    #[actix_rt::test]
+    async fn test_room_resource() {
+        setup();
+
+        // Find all rooms, there should be none
+        let mut app = test::init_service(AppFactory!()()).await;
+        let req = test::TestRequest::get()
+            .uri("/rooms")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<rooms::Room> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 0);
+
+        // Create a room with INITIAL LOCATION as location association
+        let value = rooms::MaybeRoom {
+            name: String::from("foo"),
+            location_id: INITIAL_LOCATION.id,
+        };
+        let payload = serde_json::to_string(&value).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/rooms")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp: rooms::Room = test::read_response_json(&mut app, req).await;
+        assert_eq!(value.name, resp.name);
+        assert_eq!(value.location_id, resp.location_id);
+
+        // Find all rooms, it should be the one we just created
+        let req = test::TestRequest::get()
+            .uri("/rooms")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<rooms::Room> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(value.name, resp[0].name);
+        assert_eq!(value.location_id, resp[0].location_id);
+
+        // Find room by id
+        let id = resp[0].id;
+
+        let req = test::TestRequest::get()
+            .uri(format!("/rooms/id/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: rooms::Room = test::read_response_json(&mut app, req).await;
+        assert_eq!(id, resp.id);
+        assert_eq!(value.name, resp.name);
+        assert_eq!(value.location_id, resp.location_id);
+
+        // Update room by id
+        let value_updated = rooms::MaybeRoom {
+            name: String::from("foobar"),
+            location_id: INITIAL_LOCATION.id,
+        };
+        let payload_updated = serde_json::to_string(&value_updated).expect("Invalid value");
+
+        let req = test::TestRequest::put()
+            .uri(format!("/rooms/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload_updated)
+            .to_request();
+        let resp: rooms::Room = test::read_response_json(&mut app, req).await;
+        assert_eq!(value_updated.name, resp.name);
+        assert_eq!(value_updated.location_id, resp.location_id);
+
+        // Find room by id, should be the updated one
+        let req = test::TestRequest::get()
+            .uri(format!("/rooms/id/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: rooms::Room = test::read_response_json(&mut app, req).await;
+        assert_eq!(id, resp.id);
+        assert_eq!(value_updated.name, resp.name);
+        assert_eq!(value_updated.location_id, resp.location_id);
+
+        // Delete the room by id
+        let req = test::TestRequest::delete()
+            .uri(format!("/rooms/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: usize = test::read_response_json(&mut app, req).await;
+        assert_eq!(1, resp);
+
+        // Find all rooms, there should be none now
+        let req = test::TestRequest::get()
+            .uri("/rooms")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<rooms::Room> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 0);
     }
 
     #[actix_rt::test]
