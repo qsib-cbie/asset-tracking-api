@@ -30,6 +30,15 @@ table! {
 }
 
 table! {
+    assets (id) {
+        id -> Int8,
+        asset_tag_id -> Nullable<Int8>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
     comments (id) {
         id -> Int8,
         content -> Text,
@@ -94,6 +103,7 @@ table! {
 }
 
 joinable!(alerts -> users (user_id));
+joinable!(assets -> asset_tags (asset_tag_id));
 joinable!(comments -> asset_tags (asset_tag_id));
 joinable!(comments -> users (user_id));
 joinable!(contact_events -> alerts (alert_id));
@@ -106,6 +116,7 @@ allow_tables_to_appear_in_same_query!(
     alerts,
     asset_scanners,
     asset_tags,
+    assets,
     comments,
     contact_events,
     locations,
