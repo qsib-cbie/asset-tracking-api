@@ -111,12 +111,23 @@ mod tests {
             .expect("Failed to create test admin user");
             user.try_into().expect("Failed to create auth user")
         };
+
+                //create initial asset for asset tag test                
+                static ref INITIAL_ASSET: assets::Asset = {
+                    let asset = assets::Asset::create(assets::MaybeAsset {
+                        asset_tag_id: None
+                    })
+                    .expect("Failed to create test asset");
+                    asset.try_into().expect("Failed to create initial asset")
+                };
+
                 // create initial asset tag for comment test
                 static ref INITIAL_ASSET_TAG: asset_tags::AssetTag = {
                     let asset_tag = asset_tags::AssetTag::create(asset_tags::MaybeAssetTag {
                         name: String::from("initial"),
                         description: Some(String::from("inital")),
-                        serial_number: String::from("initial")
+                        serial_number: String::from("initial"),
+                        asset_id: INITIAL_ASSET.id
                     })
                     .expect("Failed to create test asset tag");
                     asset_tag.try_into().expect("Failed to create initial asset tag")
@@ -329,6 +340,7 @@ mod tests {
             name: String::from("foo"),
             description: Some(String::from("bar")),
             serial_number: String::from("asdf"),
+            asset_id: INITIAL_ASSET.id
         };
         let payload = serde_json::to_string(&value).expect("Invalid value");
 
@@ -345,6 +357,7 @@ mod tests {
         assert_eq!(value.name, resp.name);
         assert_eq!(value.description, resp.description);
         assert_eq!(value.serial_number, resp.serial_number);
+        assert_eq!(value.asset_id, resp.asset_id);
 
         // Find all tags, it should include the one we just created
         let req = test::TestRequest::get()
@@ -359,12 +372,14 @@ mod tests {
         assert_eq!(value.name, resp[1].name);
         assert_eq!(value.description, resp[1].description);
         assert_eq!(value.serial_number, resp[1].serial_number);
+        assert_eq!(value.asset_id, resp[1].asset_id);
 
         // Create another tag
         let another_value = asset_tags::MaybeAssetTag {
             name: String::from("foo1"),
             description: Some(String::from("asdflkj")),
             serial_number: String::from("asdf1"),
+            asset_id: INITIAL_ASSET.id
         };
         let payload = serde_json::to_string(&another_value).expect("Invalid value");
 
@@ -381,6 +396,7 @@ mod tests {
         assert_eq!(another_value.name, resp.name);
         assert_eq!(another_value.description, resp.description);
         assert_eq!(another_value.serial_number, resp.serial_number);
+        assert_eq!(another_value.asset_id, resp.asset_id);
 
         // Find all tags, it should include the two we just created
         let req = test::TestRequest::get()
@@ -397,16 +413,18 @@ mod tests {
         assert_eq!(value.name, resp[1].name);
         assert_eq!(value.description, resp[1].description);
         assert_eq!(value.serial_number, resp[1].serial_number);
+        assert_eq!(value.asset_id, resp[1].asset_id);
         assert_eq!(another_value.name, resp[2].name);
         assert_eq!(another_value.description, resp[2].description);
         assert_eq!(another_value.serial_number, resp[2].serial_number);
+        assert_eq!(another_value.asset_id, resp[2].asset_id);
     }
 
     #[actix_rt::test]
     async fn test_assets_resource() {
         setup();
 
-        // Find all assets, there should be none
+        // Find all assets, there should be the initial one
         let mut app = test::init_service(AppFactory!()()).await;
         let req = test::TestRequest::get()
             .uri("/assets")
@@ -416,7 +434,7 @@ mod tests {
             )
             .to_request();
         let resp: Vec<assets::Asset> = test::read_response_json(&mut app, req).await;
-        assert_eq!(resp.len(), 0);
+        assert_eq!(resp.len(), 1);
 
         // Create a asset with INITIAL ASSET TAG as asset_tag association
         let value = assets::MaybeAsset {            
@@ -436,7 +454,7 @@ mod tests {
         let resp: assets::Asset = test::read_response_json(&mut app, req).await;
         assert_eq!(value.asset_tag_id, resp.asset_tag_id);
 
-        // Find all assets, it should be the one we just created
+        // Find all assets, it include the one we just created
         let req = test::TestRequest::get()
             .uri("/assets")
             .header(
@@ -445,11 +463,11 @@ mod tests {
             )
             .to_request();
         let resp: Vec<assets::Asset> = test::read_response_json(&mut app, req).await;
-        assert_eq!(resp.len(), 1);
-        assert_eq!(value.asset_tag_id, resp[0].asset_tag_id);
+        assert_eq!(resp.len(), 2);
+        assert_eq!(value.asset_tag_id, resp[1].asset_tag_id);
 
         // Find asset by id
-        let id = resp[0].id;
+        let id = resp[1].id;
 
         let req = test::TestRequest::get()
             .uri(format!("/assets/id/{}", id).as_str())
@@ -503,7 +521,7 @@ mod tests {
         let resp: usize = test::read_response_json(&mut app, req).await;
         assert_eq!(1, resp);
 
-        // Find all assets, there should be none now
+        // Find all assets, there shoul only be the initial one
         let req = test::TestRequest::get()
             .uri("/assets")
             .header(
@@ -512,7 +530,7 @@ mod tests {
             )
             .to_request();
         let resp: Vec<assets::Asset> = test::read_response_json(&mut app, req).await;
-        assert_eq!(resp.len(), 0);
+        assert_eq!(resp.len(), 1);
     }
 
     #[actix_rt::test]

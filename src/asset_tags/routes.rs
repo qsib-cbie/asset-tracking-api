@@ -25,6 +25,14 @@ async fn find_by_name(name: web::Path<String>) -> Result<HttpResponse, CustomErr
     Ok(HttpResponse::Ok().json(asset_tag))
 }
 
+#[get("/asset_tags/asset_id/{id}")]
+async fn find_by_asset(id: web::Path<i64>) -> Result<HttpResponse, CustomError> {
+    let id = id.into_inner();
+    log::trace!("GET /asset_tags/asset_id/{}", &id);
+    let asset_tags = AssetTag::find_by_asset(id)?;
+    Ok(HttpResponse::Ok().json(asset_tags))
+}
+
 #[post("/asset_tags")]
 async fn create(asset_tag: web::Json<MaybeAssetTag>) -> Result<HttpResponse, CustomError> {
     let asset_tag = asset_tag.into_inner();
@@ -53,11 +61,21 @@ async fn delete(id: web::Path<i64>) -> Result<HttpResponse, CustomError> {
     Ok(HttpResponse::Ok().json(res))
 }
 
+#[delete("/asset_tags/asset_id/{id}")]
+async fn delete_by_asset(id: web::Path<i64>) -> Result<HttpResponse, CustomError> {
+    let id = id.into_inner();
+    log::trace!("DELETE /asset_tags/asset_id/{}", &id);
+    let res = AssetTag::delete_by_asset(id)?;
+    Ok(HttpResponse::Ok().json(res))
+}
+
 pub fn init_routes(comfig: &mut web::ServiceConfig) {
     comfig.service(find_all);
     comfig.service(find_by_id);
+    comfig.service(find_by_asset);
     comfig.service(find_by_name);
     comfig.service(create);
     comfig.service(update);
     comfig.service(delete);
+    comfig.service(delete_by_asset);
 }
