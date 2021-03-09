@@ -13,10 +13,10 @@ pub struct AssetTag {
     pub id: i64,
     pub name: String,
     pub description: Option<String>,
-    pub serial_number: String,
-    pub asset_id: i64,
+    pub serial_number: String,    
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
+    pub asset_id: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, AsChangeset, Insertable)]

@@ -24,9 +24,9 @@ table! {
         name -> Varchar,
         description -> Nullable<Text>,
         serial_number -> Varchar,
-        asset_id -> Int8,
         created_at -> Timestamp,
-        updated_at -> Timestamp,        
+        updated_at -> Timestamp,
+        asset_id -> Int8,
     }
 }
 
@@ -104,6 +104,7 @@ table! {
 }
 
 joinable!(alerts -> users (user_id));
+joinable!(assets -> asset_tags (asset_tag_id));
 joinable!(comments -> asset_tags (asset_tag_id));
 joinable!(comments -> users (user_id));
 joinable!(contact_events -> alerts (alert_id));
