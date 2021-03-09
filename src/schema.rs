@@ -26,6 +26,7 @@ table! {
         serial_number -> Varchar,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        asset_id -> Int8,
     }
 }
 

@@ -1,19 +1,22 @@
 use crate::db;
 use crate::error_handler::CustomError;
 use crate::schema::asset_tags;
+use crate::assets::Asset;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Identifiable, Queryable, AsChangeset, Insertable)]
+#[derive(Debug, Serialize, Deserialize, Identifiable, Queryable, AsChangeset, Insertable, Associations)]
+#[belongs_to(Asset)]
 #[table_name = "asset_tags"]
 pub struct AssetTag {
     pub id: i64,
     pub name: String,
     pub description: Option<String>,
-    pub serial_number: String,
+    pub serial_number: String,    
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
+    pub asset_id: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, AsChangeset, Insertable)]
@@ -22,6 +25,7 @@ pub struct MaybeAssetTag {
     pub name: String,
     pub description: Option<String>,
     pub serial_number: String,
+    pub asset_id: i64
 }
 
 impl AssetTag {
@@ -47,6 +51,14 @@ impl AssetTag {
         Ok(asset_tag)
     }
 
+    pub fn find_by_asset(id: i64) -> Result<Vec<Self>, CustomError> {
+        let conn = db::connection()?;
+        let asset_tags = asset_tags::table
+            .filter(asset_tags::asset_id.eq(id))
+            .load::<AssetTag>(&conn)?;                     
+        Ok(asset_tags)
+    }
+
     pub fn create(asset_tag: MaybeAssetTag) -> Result<Self, CustomError> {
         let conn = db::connection()?;
         let asset_tag = diesel::insert_into(asset_tags::table)
@@ -69,4 +81,10 @@ impl AssetTag {
         let res = diesel::delete(asset_tags::table.filter(asset_tags::id.eq(id))).execute(&conn)?;
         Ok(res)
     }
+
+    pub fn delete_by_asset(id: i64) -> Result<usize, CustomError> {
+        let conn = db::connection()?;
+        let res = diesel::delete(asset_tags::table.filter(asset_tags::asset_id.eq(id))).execute(&conn)?;
+        Ok(res)
+    }    
 }
