@@ -9,6 +9,18 @@ async fn find_all() -> Result<HttpResponse, CustomError> {
     Ok(HttpResponse::Ok().json(asset_tags))
 }
 
+#[get("/asset_tags/all")]
+async fn find_with_deleted() -> Result<HttpResponse, CustomError> {
+    let asset_tags = AssetTag::find_with_deleted()?;
+    Ok(HttpResponse::Ok().json(asset_tags))
+}
+
+#[get("/asset_tags/deleted")]
+async fn find_deleted() -> Result<HttpResponse, CustomError> {
+    let asset_tags = AssetTag::find_deleted()?;
+    Ok(HttpResponse::Ok().json(asset_tags))
+}
+
 #[get("/asset_tags/id/{id}")]
 async fn find_by_id(id: web::Path<i64>) -> Result<HttpResponse, CustomError> {
     let id = id.into_inner();
@@ -71,6 +83,8 @@ async fn delete_by_asset(id: web::Path<i64>) -> Result<HttpResponse, CustomError
 
 pub fn init_routes(comfig: &mut web::ServiceConfig) {
     comfig.service(find_all);
+    comfig.service(find_with_deleted);
+    comfig.service(find_deleted);
     comfig.service(find_by_id);
     comfig.service(find_by_asset);
     comfig.service(find_by_name);

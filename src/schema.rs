@@ -27,6 +27,7 @@ table! {
         created_at -> Timestamp,
         updated_at -> Timestamp,
         asset_id -> Int8,
+        deleted -> Bool,
     }
 }
 
@@ -36,6 +37,7 @@ table! {
         asset_tag_id -> Nullable<Int8>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        deleted -> Bool,
     }
 }
 
@@ -58,6 +60,7 @@ table! {
         alert_id -> Nullable<Int8>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
+        deleted -> Bool,
     }
 }
 
@@ -104,7 +107,6 @@ table! {
 }
 
 joinable!(alerts -> users (user_id));
-joinable!(assets -> asset_tags (asset_tag_id));
 joinable!(comments -> asset_tags (asset_tag_id));
 joinable!(comments -> users (user_id));
 joinable!(contact_events -> alerts (alert_id));

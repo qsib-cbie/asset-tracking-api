@@ -112,10 +112,11 @@ mod tests {
             user.try_into().expect("Failed to create auth user")
         };
 
-                //create initial asset for asset tag test                
+                //create initial asset for asset tag test
                 static ref INITIAL_ASSET: assets::Asset = {
                     let asset = assets::Asset::create(assets::MaybeAsset {
-                        asset_tag_id: None
+                        asset_tag_id: None,
+                        deleted: false
                     })
                     .expect("Failed to create test asset");
                     asset.try_into().expect("Failed to create initial asset")
@@ -127,7 +128,8 @@ mod tests {
                         name: String::from("initial"),
                         description: Some(String::from("inital")),
                         serial_number: String::from("initial"),
-                        asset_id: INITIAL_ASSET.id
+                        asset_id: INITIAL_ASSET.id,
+                        deleted: false
                     })
                     .expect("Failed to create test asset tag");
                     asset_tag.try_into().expect("Failed to create initial asset tag")
@@ -172,6 +174,7 @@ mod tests {
     #[actix_rt::test]
     async fn test_health_get_without_token() {
         setup();
+        log::info!("Token: {:?}", ADMIN_USER.token);
 
         let mut app = test::init_service(AppFactory!()()).await;
         let req = test::TestRequest::get().uri("/health").to_request();
@@ -200,7 +203,7 @@ mod tests {
             .set_payload(payload)
             .to_request();
         let resp: users::AuthUser = test::read_response_json(&mut app, req).await;
-        log::info!("Created User: {:?}", resp);        
+        log::info!("Created User: {:?}", resp);
 
         let req = test::TestRequest::get()
             .uri("/asset_tags")
@@ -340,7 +343,8 @@ mod tests {
             name: String::from("foo"),
             description: Some(String::from("bar")),
             serial_number: String::from("asdf"),
-            asset_id: INITIAL_ASSET.id
+            asset_id: INITIAL_ASSET.id,
+            deleted: false,
         };
         let payload = serde_json::to_string(&value).expect("Invalid value");
 
@@ -358,6 +362,9 @@ mod tests {
         assert_eq!(value.description, resp.description);
         assert_eq!(value.serial_number, resp.serial_number);
         assert_eq!(value.asset_id, resp.asset_id);
+        assert_eq!(value.deleted, resp.deleted);
+
+        let id = resp.id;
 
         // Find all tags, it should include the one we just created
         let req = test::TestRequest::get()
@@ -373,13 +380,15 @@ mod tests {
         assert_eq!(value.description, resp[1].description);
         assert_eq!(value.serial_number, resp[1].serial_number);
         assert_eq!(value.asset_id, resp[1].asset_id);
+        assert_eq!(value.deleted, resp[1].deleted);
 
         // Create another tag
         let another_value = asset_tags::MaybeAssetTag {
             name: String::from("foo1"),
             description: Some(String::from("asdflkj")),
             serial_number: String::from("asdf1"),
-            asset_id: INITIAL_ASSET.id
+            asset_id: INITIAL_ASSET.id,
+            deleted: false,
         };
         let payload = serde_json::to_string(&another_value).expect("Invalid value");
 
@@ -397,6 +406,7 @@ mod tests {
         assert_eq!(another_value.description, resp.description);
         assert_eq!(another_value.serial_number, resp.serial_number);
         assert_eq!(another_value.asset_id, resp.asset_id);
+        assert_eq!(another_value.deleted, resp.deleted);
 
         // Find all tags, it should include the two we just created
         let req = test::TestRequest::get()
@@ -414,10 +424,58 @@ mod tests {
         assert_eq!(value.description, resp[1].description);
         assert_eq!(value.serial_number, resp[1].serial_number);
         assert_eq!(value.asset_id, resp[1].asset_id);
+        assert_eq!(value.deleted, resp[1].deleted);
         assert_eq!(another_value.name, resp[2].name);
         assert_eq!(another_value.description, resp[2].description);
         assert_eq!(another_value.serial_number, resp[2].serial_number);
         assert_eq!(another_value.asset_id, resp[2].asset_id);
+        assert_eq!(another_value.deleted, resp[2].deleted);
+
+        // Delete first asset_tag
+        let req = test::TestRequest::delete()
+            .uri(format!("/asset_tags/{}", id).as_str())
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: asset_tags::AssetTag = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.deleted, true);
+
+        // Find all asset_tags, there should only be 2
+        let req = test::TestRequest::get()
+            .uri("/asset_tags")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 2);
+
+        // Find all deleted asset_tags, there should be the deleted one
+        let req = test::TestRequest::get()
+            .uri("/asset_tags/deleted")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(id, resp[0].id);
+        assert_eq!(resp[0].deleted, true);
+
+        // Find all asset_tags including deleted ones, there should be 3
+        let req = test::TestRequest::get()
+            .uri("/asset_tags/all")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<asset_tags::AssetTag> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 3);
     }
 
     #[actix_rt::test]
@@ -437,8 +495,9 @@ mod tests {
         assert_eq!(resp.len(), 1);
 
         // Create a asset with INITIAL ASSET TAG as asset_tag association
-        let value = assets::MaybeAsset {            
-            asset_tag_id: Some(INITIAL_ASSET_TAG.id)
+        let value = assets::MaybeAsset {
+            asset_tag_id: Some(INITIAL_ASSET_TAG.id),
+            deleted: false,
         };
         let payload = serde_json::to_string(&value).expect("Invalid value");
 
@@ -453,6 +512,7 @@ mod tests {
             .to_request();
         let resp: assets::Asset = test::read_response_json(&mut app, req).await;
         assert_eq!(value.asset_tag_id, resp.asset_tag_id);
+        assert_eq!(value.deleted, resp.deleted);
 
         // Find all assets, it include the one we just created
         let req = test::TestRequest::get()
@@ -465,6 +525,7 @@ mod tests {
         let resp: Vec<assets::Asset> = test::read_response_json(&mut app, req).await;
         assert_eq!(resp.len(), 2);
         assert_eq!(value.asset_tag_id, resp[1].asset_tag_id);
+        assert_eq!(value.deleted, resp[1].deleted);
 
         // Find asset by id
         let id = resp[1].id;
@@ -479,10 +540,12 @@ mod tests {
         let resp: assets::Asset = test::read_response_json(&mut app, req).await;
         assert_eq!(id, resp.id);
         assert_eq!(value.asset_tag_id, resp.asset_tag_id);
+        assert_eq!(value.deleted, resp.deleted);
 
         // Update asset by id
-        let value_updated = assets::MaybeAsset {            
-            asset_tag_id: Some(INITIAL_ASSET_TAG.id)
+        let value_updated = assets::MaybeAsset {
+            asset_tag_id: Some(INITIAL_ASSET_TAG.id),
+            deleted: false,
         };
         let payload_updated = serde_json::to_string(&value_updated).expect("Invalid value");
 
@@ -497,6 +560,7 @@ mod tests {
             .to_request();
         let resp: assets::Asset = test::read_response_json(&mut app, req).await;
         assert_eq!(value_updated.asset_tag_id, resp.asset_tag_id);
+        assert_eq!(value_updated.deleted, resp.deleted);
 
         // Find asset by id, should be the updated one
         let req = test::TestRequest::get()
@@ -509,6 +573,7 @@ mod tests {
         let resp: assets::Asset = test::read_response_json(&mut app, req).await;
         assert_eq!(id, resp.id);
         assert_eq!(value_updated.asset_tag_id, resp.asset_tag_id);
+        assert_eq!(value_updated.deleted, resp.deleted);
 
         // Delete the asset by id
         let req = test::TestRequest::delete()
@@ -518,10 +583,10 @@ mod tests {
                 format!("Bearer {}", ADMIN_USER.token),
             )
             .to_request();
-        let resp: usize = test::read_response_json(&mut app, req).await;
-        assert_eq!(1, resp);
+        let resp: assets::Asset = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.deleted, true);
 
-        // Find all assets, there shoul only be the initial one
+        // Find all assets, there should only be the initial one
         let req = test::TestRequest::get()
             .uri("/assets")
             .header(
@@ -531,6 +596,30 @@ mod tests {
             .to_request();
         let resp: Vec<assets::Asset> = test::read_response_json(&mut app, req).await;
         assert_eq!(resp.len(), 1);
+
+        // Find all deleted assets, there should be the deleted one
+        let req = test::TestRequest::get()
+            .uri("/assets/deleted")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<assets::Asset> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(id, resp[0].id);
+        assert_eq!(resp[0].deleted, true);
+
+        // Find all assets including deleted ones, there should be 2
+        let req = test::TestRequest::get()
+            .uri("/assets/all")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<assets::Asset> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 2);
     }
 
     #[actix_rt::test]
@@ -1300,6 +1389,7 @@ mod tests {
             asset_tag_id: INITIAL_ASSET_TAG.id,
             location_id: INITIAL_LOCATION.id,
             alert_id: Some(INITIAL_ALERT.id),
+            deleted: false,
         };
         let payload = serde_json::to_string(&value).expect("Invalid value");
 
@@ -1316,6 +1406,7 @@ mod tests {
         assert_eq!(value.asset_tag_id, resp.asset_tag_id);
         assert_eq!(value.location_id, resp.location_id);
         assert_eq!(value.alert_id, resp.alert_id);
+        assert_eq!(value.deleted, resp.deleted);
 
         // Find all contact_events, it should be the one we just created
         let req = test::TestRequest::get()
@@ -1330,6 +1421,7 @@ mod tests {
         assert_eq!(value.asset_tag_id, resp[0].asset_tag_id);
         assert_eq!(value.location_id, resp[0].location_id);
         assert_eq!(value.alert_id, resp[0].alert_id);
+        assert_eq!(value.deleted, resp[0].deleted);
 
         // Find contact_event by id
         let id = resp[0].id;
@@ -1346,12 +1438,14 @@ mod tests {
         assert_eq!(value.asset_tag_id, resp.asset_tag_id);
         assert_eq!(value.location_id, resp.location_id);
         assert_eq!(value.alert_id, resp.alert_id);
+        assert_eq!(value.deleted, resp.deleted);
 
         // Update contact_event by id
         let value_updated = contact_events::MaybeContactEvent {
             asset_tag_id: INITIAL_ASSET_TAG.id,
             location_id: INITIAL_LOCATION.id,
             alert_id: Some(INITIAL_ALERT.id),
+            deleted: false,
         };
         let payload_updated = serde_json::to_string(&value_updated).expect("Invalid value");
 
@@ -1368,6 +1462,7 @@ mod tests {
         assert_eq!(value_updated.asset_tag_id, resp.asset_tag_id);
         assert_eq!(value_updated.location_id, resp.location_id);
         assert_eq!(value_updated.alert_id, resp.alert_id);
+        assert_eq!(value_updated.deleted, resp.deleted);
 
         // Find contact_event by id, should be the updated one
         let req = test::TestRequest::get()
@@ -1381,6 +1476,7 @@ mod tests {
         assert_eq!(value_updated.asset_tag_id, resp.asset_tag_id);
         assert_eq!(value_updated.location_id, resp.location_id);
         assert_eq!(value_updated.alert_id, resp.alert_id);
+        assert_eq!(value_updated.deleted, resp.deleted);
 
         // Delete the contact_event by id
         let req = test::TestRequest::delete()
@@ -1390,10 +1486,10 @@ mod tests {
                 format!("Bearer {}", ADMIN_USER.token),
             )
             .to_request();
-        let resp: usize = test::read_response_json(&mut app, req).await;
-        assert_eq!(1, resp);
+        let resp: contact_events::ContactEvent = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.deleted, true);
 
-        // Find all contact_events, there should be none now
+        // Find all contact_events, there should be none
         let req = test::TestRequest::get()
             .uri("/contact_events")
             .header(
@@ -1403,5 +1499,29 @@ mod tests {
             .to_request();
         let resp: Vec<contact_events::ContactEvent> = test::read_response_json(&mut app, req).await;
         assert_eq!(resp.len(), 0);
+
+        // Find all deleted contact_events, there should be the deleted one
+        let req = test::TestRequest::get()
+            .uri("/contact_events/deleted")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<contact_events::ContactEvent> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
+        assert_eq!(id, resp[0].id);
+        assert_eq!(resp[0].deleted, true);
+
+        // Find all contact_events including deleted ones, there should be 1
+        let req = test::TestRequest::get()
+            .uri("/contact_events/all")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .to_request();
+        let resp: Vec<contact_events::ContactEvent> = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.len(), 1);
     }
 }

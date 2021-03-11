@@ -22,6 +22,7 @@ pub struct ContactEvent {
     pub alert_id: Option<i64>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
+    pub deleted: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, AsChangeset, Insertable)]
@@ -30,12 +31,29 @@ pub struct MaybeContactEvent {
     pub asset_tag_id: i64,
     pub location_id: i64,
     pub alert_id: Option<i64>,
+    pub deleted: bool,
 }
 
 impl ContactEvent {
     pub fn find_all() -> Result<Vec<Self>, CustomError> {
         let conn = db::connection()?;
+        let contact_events = contact_events::table
+            .filter(contact_events::deleted.eq(false))
+            .load::<ContactEvent>(&conn)?;
+        Ok(contact_events)
+    }
+
+    pub fn find_with_deleted() -> Result<Vec<Self>, CustomError> {
+        let conn = db::connection()?;
         let contact_events = contact_events::table.load::<ContactEvent>(&conn)?;
+        Ok(contact_events)
+    }
+
+    pub fn find_deleted() -> Result<Vec<Self>, CustomError> {
+        let conn = db::connection()?;
+        let contact_events = contact_events::table
+            .filter(contact_events::deleted.eq(true))
+            .load::<ContactEvent>(&conn)?;
         Ok(contact_events)
     }
 
@@ -43,6 +61,7 @@ impl ContactEvent {
         let conn = db::connection()?;
         let contact_event = contact_events::table
             .filter(contact_events::id.eq(id))
+            .filter(contact_events::deleted.eq(false))
             .first(&conn)?;
         Ok(contact_event)
     }
@@ -51,6 +70,7 @@ impl ContactEvent {
         let conn = db::connection()?;
         let contact_events = contact_events::table
             .filter(contact_events::asset_tag_id.eq(id))
+            .filter(contact_events::deleted.eq(false))
             .load::<ContactEvent>(&conn)?;
         Ok(contact_events)
     }
@@ -59,6 +79,7 @@ impl ContactEvent {
         let conn = db::connection()?;
         let contact_events = contact_events::table
             .filter(contact_events::location_id.eq(id))
+            .filter(contact_events::deleted.eq(false))
             .load::<ContactEvent>(&conn)?;
         Ok(contact_events)
     }
@@ -67,6 +88,7 @@ impl ContactEvent {
         let conn = db::connection()?;
         let contact_events = contact_events::table
             .filter(contact_events::alert_id.eq(id))
+            .filter(contact_events::deleted.eq(false))
             .load::<ContactEvent>(&conn)?;
         Ok(contact_events)
     }
@@ -83,15 +105,19 @@ impl ContactEvent {
         let conn = db::connection()?;
         let contact_event = diesel::update(contact_events::table)
             .filter(contact_events::id.eq(id))
+            .filter(contact_events::deleted.eq(false))
             .set(contact_event)
             .get_result(&conn)?;
         Ok(contact_event)
     }
 
-    pub fn delete(id: i64) -> Result<usize, CustomError> {
+    pub fn delete(id: i64) -> Result<Self, CustomError> {
         let conn = db::connection()?;
-        let res = diesel::delete(contact_events::table.filter(contact_events::id.eq(id)))
-            .execute(&conn)?;
-        Ok(res)
+        let contact_event = diesel::update(contact_events::table)
+            .filter(contact_events::id.eq(id))
+            .filter(contact_events::deleted.eq(false))
+            .set(contact_events::deleted.eq(true))
+            .get_result(&conn)?;
+        Ok(contact_event)
     }
 }
