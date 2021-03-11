@@ -1,11 +1,23 @@
+use crate::assets::{Asset, MaybeAsset};
 use crate::error_handler::CustomError;
-use crate::assets::{MaybeAsset, Asset};
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use log;
 
 #[get("/assets")]
 async fn find_all() -> Result<HttpResponse, CustomError> {
     let assets = Asset::find_all()?;
+    Ok(HttpResponse::Ok().json(assets))
+}
+
+#[get("/assets/all")]
+async fn find_with_deleted() -> Result<HttpResponse, CustomError> {
+    let assets = Asset::find_with_deleted()?;
+    Ok(HttpResponse::Ok().json(assets))
+}
+
+#[get("/assets/deleted")]
+async fn find_deleted() -> Result<HttpResponse, CustomError> {
+    let assets = Asset::find_deleted()?;
     Ok(HttpResponse::Ok().json(assets))
 }
 
@@ -55,7 +67,9 @@ async fn delete(id: web::Path<i64>) -> Result<HttpResponse, CustomError> {
 
 pub fn init_routes(comfig: &mut web::ServiceConfig) {
     comfig.service(find_all);
-    comfig.service(find_by_id);    
+    comfig.service(find_with_deleted);
+    comfig.service(find_deleted);
+    comfig.service(find_by_id);
     comfig.service(find_by_asset_tag);
     comfig.service(create);
     comfig.service(update);
