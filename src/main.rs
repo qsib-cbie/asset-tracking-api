@@ -128,7 +128,7 @@ mod tests {
                         name: String::from("initial"),
                         description: Some(String::from("inital")),
                         serial_number: String::from("initial"),
-                        asset_id: INITIAL_ASSET.id,
+                        asset_id: Some(INITIAL_ASSET.id),
                         deleted: false
                     })
                     .expect("Failed to create test asset tag");
@@ -343,7 +343,7 @@ mod tests {
             name: String::from("foo"),
             description: Some(String::from("bar")),
             serial_number: String::from("asdf"),
-            asset_id: INITIAL_ASSET.id,
+            asset_id: Some(INITIAL_ASSET.id),
             deleted: false,
         };
         let payload = serde_json::to_string(&value).expect("Invalid value");
@@ -387,7 +387,7 @@ mod tests {
             name: String::from("foo1"),
             description: Some(String::from("asdflkj")),
             serial_number: String::from("asdf1"),
-            asset_id: INITIAL_ASSET.id,
+            asset_id: Some(INITIAL_ASSET.id),
             deleted: false,
         };
         let payload = serde_json::to_string(&another_value).expect("Invalid value");

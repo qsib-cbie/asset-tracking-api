@@ -18,7 +18,7 @@ pub struct AssetTag {
     pub serial_number: String,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
-    pub asset_id: i64,
+    pub asset_id: Option<i64>,
     pub deleted: bool,
 }
 
@@ -28,7 +28,7 @@ pub struct MaybeAssetTag {
     pub name: String,
     pub description: Option<String>,
     pub serial_number: String,
-    pub asset_id: i64,
+    pub asset_id: Option<i64>,
     pub deleted: bool,
 }
 
