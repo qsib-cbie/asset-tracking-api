@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  BlobBucket:
+    Type: AWS::S3::Bucket
+
+  BackupBucket:
+    Type: AWS::S3::Bucket
