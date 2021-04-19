@@ -19,6 +19,11 @@ Resources:
   BackupBucket:
     Type: AWS::S3::Bucket
 
+  ContainerRepository:
+    Type: AWS::ECR::Repository
+    Properties: 
+      ImageTagMutability: MUTABLE
+
   Database:
     Type: AWS::RDS::DBInstance
     Properties:
