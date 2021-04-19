@@ -1,8 +1,34 @@
 AWSTemplateFormatVersion: 2010-09-09
 
+Parameters:
+  DBInstanceClass:
+    Type: String
+    Default: db.t2.small
+  AllocatedStorage:
+    Type: String
+    Default: '5'
+  DBMasterUserName:
+    Type: String
+  DBMasterUserPassword:
+    Type: String
+
 Resources:
   BlobBucket:
     Type: AWS::S3::Bucket
 
   BackupBucket:
     Type: AWS::S3::Bucket
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBSecurityGroups:
+      - Ref: MyDbSecurityByEC2SecurityGroup # Needs to update to actual securty group
+      - Ref: MyDbSecurityByCIDRIPGroup # Needs to update to actual security group
+      AllocatedStorage: !Ref AllocatedStorage
+      DBInstanceClass: !Ref DbInstanceClass
+      Engine: postgres
+      MasterUsername: !Ref DBMasterUserName
+      MasterUserPassword: !Ref DBMasterUserPassword
+      DeletionProtection: True
+    DeletionPolicy: Snapshot
