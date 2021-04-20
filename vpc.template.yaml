@@ -38,3 +38,30 @@ Parameters:
     Description: IP range (CIDR notation) for the private subnet in the third Availability Zone
     Type: String
     Default: 10.0.160.0/20
+
+Resources:
+ # Virtual Private Cloud (VPC) for this project
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${VpcName}-vpc"
+
+  # Internet Gateway for VPC
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${VpcName}-ig"
+
+  # Attaches an internet gateway to VPC
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
