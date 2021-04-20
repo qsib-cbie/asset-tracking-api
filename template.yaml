@@ -1,6 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
+  ProjectName:
+    Type: String
+  RDSAdminUser:
+    Type: String
   DBInstanceClass:
     Type: String
     Default: db.t2.small
@@ -10,6 +14,19 @@ Parameters:
   DBMasterUserName:
     Type: String
   DBMasterUserPassword:
+    Type: String
+  VpcId:
+    Type: String
+  VpcCIDR:
+    Type: String
+  DBSubnet1:
+    Description: Id for Database subnet 1
+    Type: String
+  DBSubnet2:
+    Description: Id for Database subnet 2
+    Type: String
+  DBSubnet3:
+    Description: Id for Database subnet 3
     Type: String
 
 Resources:
@@ -24,16 +41,60 @@ Resources:
     Properties: 
       ImageTagMutability: MUTABLE
 
+  AdminRDSCredentials:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "/${ProjectName}/rds/MasterDB"
+      Description: !Sub 'Generated RDS password for ${ProjectName}'
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${RDSAdminUser}"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  SecretRDSInstanceAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref AdminRDSCredentials
+      TargetId: !Ref Database
+      TargetType: AWS::RDS::DBInstance
+
   Database:
     Type: AWS::RDS::DBInstance
     Properties:
-      DBSecurityGroups:
-      - Ref: MyDbSecurityByEC2SecurityGroup # Needs to update to actual securty group
-      - Ref: MyDbSecurityByCIDRIPGroup # Needs to update to actual security group
+      DBSecurityGroups: !Ref DBSecurityGroup
       AllocatedStorage: !Ref AllocatedStorage
       DBInstanceClass: !Ref DbInstanceClass
       Engine: postgres
-      MasterUsername: !Ref DBMasterUserName
-      MasterUserPassword: !Ref DBMasterUserPassword
-      DeletionProtection: True
+      MasterUserPassword: 
+        !Join ['', ['{{resolve:secretsmanager:', !Ref AdminRDSCredentials, ':SecretString:password}}' ]]
+      MasterUsername: 
+        !Join ['', ['{{resolve:secretsmanager:', !Ref AdminRDSCredentials, ':SecretString:username}}' ]]
+      MultiAZ: true
+      PubliclyAccessible: false
+      DeletionProtection: true
+      VPCSecurityGroups: 
+        - !Ref DBSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
     DeletionPolicy: Snapshot
+  
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to Master DB
+      GroupName: !Sub "${ProjName}-DBSecurityGroup"
+      SecurityGroupIngress:
+        - CidrIp: !Ref VpcCIDR
+          IpProtocol: tcp
+          ToPort: 3306
+          FromPort: 3306
+      VpcId: !Ref VpcId
+
+  DBSubnetGroup:
+   Type: AWS::RDS::DBSubnetGroup
+   Properties: 
+    DBSubnetGroupDescription: Database Subnet Group
+    SubnetIds:
+      - !Ref DBSubnet1
+      - !Ref DBSubnet2
+      - !Ref DBSubnet3
