@@ -301,7 +301,7 @@ Resources:
 
 Outputs:
   Vpc:
-    Value: !Ref Vpc
+    Value: !Ref VPC
   PublicSubnet1:
     Value: !Ref PublicSubnet1
   PublicSubnet2:
