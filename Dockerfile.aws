@@ -41,4 +41,6 @@ RUN . $HOME/.shrc && \
 
 WORKDIR /home/app
 
-RUN cargo run
+# Next steps, either in dockerfile or from outside
+# Add db connection info
+# cargo run
