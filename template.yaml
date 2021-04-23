@@ -7,14 +7,10 @@ Parameters:
     Type: String
   DBInstanceClass:
     Type: String
-    Default: db.t2.small
+    Default: db.t2.micro
   AllocatedStorage:
     Type: String
     Default: '5'
-  DBMasterUserName:
-    Type: String
-  DBMasterUserPassword:
-    Type: String
   VpcId:
     Type: String
   VpcCIDR:
@@ -62,9 +58,8 @@ Resources:
   Database:
     Type: AWS::RDS::DBInstance
     Properties:
-      DBSecurityGroups: !Ref DBSecurityGroup
       AllocatedStorage: !Ref AllocatedStorage
-      DBInstanceClass: !Ref DbInstanceClass
+      DBInstanceClass: !Ref DBInstanceClass
       Engine: postgres
       MasterUserPassword: 
         !Join ['', ['{{resolve:secretsmanager:', !Ref AdminRDSCredentials, ':SecretString:password}}' ]]
@@ -82,7 +77,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Access to Master DB
-      GroupName: !Sub "${ProjName}-DBSecurityGroup"
+      GroupName: !Sub "${ProjectName}-DBSecurityGroup"
       SecurityGroupIngress:
         - CidrIp: !Ref VpcCIDR
           IpProtocol: tcp

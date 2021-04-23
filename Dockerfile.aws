@@ -40,3 +40,5 @@ RUN . $HOME/.shrc && \
     diesel setup --database-url postgres://postgres:postgres@localhost/hetnetdb
 
 WORKDIR /home/app
+
+RUN cargo run
