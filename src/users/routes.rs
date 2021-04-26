@@ -55,7 +55,23 @@ async fn create(user: web::Json<MaybeUser>) -> Result<HttpResponse, CustomError>
     Ok(HttpResponse::Ok().json(auth_user))
 }
 
+#[post("/login")]
+async fn login(user: web::Json<MaybeUser>) -> Result<HttpResponse, CustomError> {
+    let user = user.into_inner();
+    log::trace!("POST /login");
+    let user_clone = user.clone();
+    let auth_user: AuthUser = match user.try_into() {
+        Ok(user) => user,
+        Err(err) => {
+            log::trace!("Login for '{}' failed with {:?}", user_clone.username, err);
+            return Err(CustomError::new(401, String::from("Unauthorized")));
+        }
+    };
+    Ok(HttpResponse::Ok().json(auth_user))
+}
+
 pub fn init_routes(comfig: &mut web::ServiceConfig) {
     comfig.service(update);
     comfig.service(create);
+    comfig.service(login);
 }

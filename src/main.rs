@@ -217,6 +217,57 @@ mod tests {
     }
 
     #[actix_rt::test]
+    async fn test_create_and_login_with_user() {
+        setup();
+
+        let mut app = test::init_service(AppFactory!()()).await;
+
+        let user = users::MaybeUser {
+            username: String::from("foo"),
+            password: String::from("secretpassword"),
+        };
+        let payload = serde_json::to_string(&user).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/users")
+            .header(
+                header::AUTHORIZATION,
+                format!("Bearer {}", ADMIN_USER.token),
+            )
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp: users::AuthUser = test::read_response_json(&mut app, req).await;
+        log::info!("Created User: {:?}", resp);
+
+        let token = resp.token;
+        let payload = serde_json::to_string(&user).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/login")
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp: users::AuthUser = test::read_response_json(&mut app, req).await;
+        assert_eq!(token, resp.token);
+
+        // bad password
+        let bad_user = users::MaybeUser {
+            username: String::from("foo"),
+            password: String::from("WRONGPASSWORD"),
+        };
+        let payload = serde_json::to_string(&bad_user).expect("Invalid value");
+
+        let req = test::TestRequest::post()
+            .uri("/login")
+            .header(header::CONTENT_TYPE, "application/json")
+            .set_payload(payload)
+            .to_request();
+        let resp = test::call_service(&mut app, req).await;
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[actix_rt::test]
     async fn test_user_cant_change_other_users() {
         setup();
 

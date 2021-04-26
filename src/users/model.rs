@@ -7,7 +7,7 @@ use crypto::buffer::{BufferResult, ReadBuffer, WriteBuffer};
 use crypto::{aes, blockmodes, buffer, symmetriccipher};
 use diesel::prelude::*;
 use lazy_static::lazy_static;
-use rand::RngCore;
+use rand::{RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
@@ -42,6 +42,12 @@ lazy_static! {
         }
         base64::encode(secret)
     };
+    pub static ref AUTH_SEED: [u8; 32] = {
+        lazy_static::initialize(&AUTH_SECRET);
+        AUTH_SECRET.as_bytes()[0..32]
+            .try_into()
+            .expect("Invalid AUTH_SECRET length for AUTH_SEED")
+    };
 }
 
 pub fn init() {
@@ -55,7 +61,7 @@ pub fn bcrypt(password: &[u8]) -> Result<Vec<u8>, String> {
 
     // Generate a salt
     let mut salt: [u8; 16] = [0; 16];
-    let mut rng = rand::rngs::OsRng::default();
+    let mut rng = rand::rngs::StdRng::from_seed(*AUTH_SEED);
     rng.fill_bytes(&mut salt);
 
     // Encrypt the password with the salt
@@ -153,7 +159,7 @@ pub struct InsertableUser {
     pub token: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MaybeUser {
     pub username: String,
     pub password: String,
@@ -242,6 +248,7 @@ impl User {
     }
 
     fn internal_token(username: String, password: String) -> Result<String, CustomError> {
+        log::debug!("Username: {}, Password: {}", username, password);
         let db_token = bcrypt(password.as_bytes())?;
         let db_token = base64::encode(db_token.as_slice());
         let db_token = format!("$2$10${}", db_token);
@@ -250,6 +257,7 @@ impl User {
             username,
             db_token
         );
+        log::debug!("Token: {}", db_token);
         Ok(db_token)
     }
 }
@@ -276,6 +284,43 @@ impl std::convert::TryInto<AuthUser> for User {
 
         Ok(AuthUser {
             id: self.id,
+            token: token,
+        })
+    }
+}
+
+impl std::convert::TryInto<AuthUser> for MaybeUser {
+    type Error = CustomError;
+
+    fn try_into(self) -> Result<AuthUser, CustomError> {
+        let token = User::internal_token(self.username.clone(), self.password)?;
+
+        let seed: String = [
+            self.username.clone(),
+            String::from("$"), // Symmetric encryption allows decryption and lookup by username
+            token,             // Token invalidated if password changes
+        ]
+        .join("");
+
+        // Token invalidated if secret changes
+        let secret = AUTH_SECRET.as_bytes();
+        let key: [u8; 32] = secret[0..32].try_into()?;
+        let iv: [u8; 16] = secret[32..48].try_into()?;
+
+        // Token symmetrically encrypted allows lookup by username
+        let token = symmetric_encrypt(seed.as_bytes(), &key, &iv)?;
+        let token = base64::encode(token.as_slice());
+
+        // Do the database lookup to see if actually have a user's token
+        log::trace!(
+            "Looking for login for {} with token {}",
+            self.username,
+            token.clone()
+        );
+        let user = User::find_by_token(token.clone())?;
+
+        Ok(AuthUser {
+            id: user.id,
             token: token,
         })
     }
