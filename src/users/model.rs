@@ -247,8 +247,7 @@ impl User {
             .first(&conn)?)
     }
 
-    fn internal_token(username: String, password: String) -> Result<String, CustomError> {
-        log::debug!("Username: {}, Password: {}", username, password);
+    fn internal_token(username: String, password: String) -> Result<String, CustomError> {        
         let db_token = bcrypt(password.as_bytes())?;
         let db_token = base64::encode(db_token.as_slice());
         let db_token = format!("$2$10${}", db_token);
@@ -256,8 +255,7 @@ impl User {
             "Prepared username: [{}] and password: [{}]",
             username,
             db_token
-        );
-        log::debug!("Token: {}", db_token);
+        );        
         Ok(db_token)
     }
 }
