@@ -93,3 +93,44 @@ Resources:
       - !Ref DBSubnet1
       - !Ref DBSubnet2
       - !Ref DBSubnet3
+
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+      Policies:
+        - PolicyName: PullFromECR
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:*
+                Resource: !GetAtt ContainerRepository.Arn
+        - PolicyName: GetECRCredentials
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      Roles: 
+        - !Ref EC2Role
+
+
+
+# UserScript
+# aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 657550633622.dkr.ecr.us-east-2.amazonaws.com
+# docker pull 657550633622.dkr.ecr.us-east-2.amazonaws.com/qsib-asset-tracking-api-containerrepository-qbkmzy4kcw7z:latest
+# docker run -t -i -p 443:443 657550633622.dkr.ecr.us-east-2.amazonaws.com/qsib-asset-tracking-api-containerrepository-qbkmzy4kcw7z:latest

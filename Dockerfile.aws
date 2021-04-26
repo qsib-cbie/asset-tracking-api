@@ -39,6 +39,8 @@ RUN . $HOME/.shrc && \
 
 WORKDIR /home/app
 
+EXPOSE 443
+
 # Next steps, either in dockerfile or from outside
 # Add db connection info
 # cargo run
