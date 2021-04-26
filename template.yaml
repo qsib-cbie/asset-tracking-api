@@ -133,4 +133,5 @@ Resources:
 # UserScript
 # aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 657550633622.dkr.ecr.us-east-2.amazonaws.com
 # docker pull 657550633622.dkr.ecr.us-east-2.amazonaws.com/qsib-asset-tracking-api-containerrepository-qbkmzy4kcw7z:latest
+# diesel setup --database-url postgres://postgres:postgres@{rdshost}/{dbname}
 # docker run -t -i -p 443:443 657550633622.dkr.ecr.us-east-2.amazonaws.com/qsib-asset-tracking-api-containerrepository-qbkmzy4kcw7z:latest
