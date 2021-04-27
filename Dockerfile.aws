@@ -34,11 +34,13 @@ COPY diesel.toml Cargo.toml Cargo.lock Makefile.toml /home/app/
 RUN . $HOME/.shrc && \
     pg_ctlcluster 12 main start -- -t 300 && \
     su - postgres -c "psql -U postgres -c \"alter user postgres with password 'postgres';\"" && \
-    cd /home/app && \
+    cd /home/app
 
 WORKDIR /home/app
 
 EXPOSE 443
+
+RUN cargo run
 
 # Next steps, either in dockerfile or from outside
 # Add db connection info

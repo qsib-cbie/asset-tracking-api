@@ -81,8 +81,8 @@ Resources:
       SecurityGroupIngress:
         - CidrIp: !Ref VpcCIDR
           IpProtocol: tcp
-          ToPort: 3306
-          FromPort: 3306
+          ToPort: 5432
+          FromPort: 5432
       VpcId: !Ref VpcId
 
   DBSubnetGroup:
@@ -131,7 +131,9 @@ Resources:
 
 
 # UserScript
-# aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 657550633622.dkr.ecr.us-east-2.amazonaws.com
-# docker pull 657550633622.dkr.ecr.us-east-2.amazonaws.com/qsib-asset-tracking-api-containerrepository-qbkmzy4kcw7z:latest
-# diesel setup --database-url postgres://postgres:postgres@{rdshost}/{dbname}
-# docker run -t -i -p 443:443 657550633622.dkr.ecr.us-east-2.amazonaws.com/qsib-asset-tracking-api-containerrepository-qbkmzy4kcw7z:latest
+# With rust AMI
+# git clone 
+# cd 
+# configure db address in .env, with HOST, AUTH, and PORT
+# diesel setup
+# cargo run
