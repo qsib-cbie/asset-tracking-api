@@ -36,8 +36,7 @@ pub async fn validator(
 ) -> Result<ServiceRequest, Error> {
     match credentials.token() {
         "_" => {
-            if req.path() == "/health" || 
-             (req.path() == "/login" && req.method() == Method::POST) {
+            if req.path() == "/health" || (req.path() == "/login" && req.method() == Method::POST) {
                 Ok(req)
             } else {
                 let config = req

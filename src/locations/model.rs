@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Identifiable, Queryable, AsChangeset, Insertable)]
 #[table_name = "locations"]
+#[changeset_options(treat_none_as_null = "true")]
 pub struct Location {
     pub id: i64,
     pub name: Option<String>,
@@ -20,6 +21,7 @@ pub struct Location {
 
 #[derive(Debug, Serialize, Deserialize, AsChangeset, Insertable)]
 #[table_name = "locations"]
+#[changeset_options(treat_none_as_null = "true")]
 pub struct MaybeLocation {
     pub name: Option<String>,
     pub latitude: f32,
